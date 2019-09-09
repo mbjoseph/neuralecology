@@ -1,4 +1,6 @@
-# Neural hierarchical models for ecological populations
+# Neural hierarchical models of ecological populations
+
+Preprint: https://www.biorxiv.org/content/10.1101/759944v1?rss=1
 
 ### Key idea
 
