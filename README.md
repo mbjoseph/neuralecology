@@ -1,5 +1,7 @@
 # Neural hierarchical models of ecological populations
 
+[![DOI](https://zenodo.org/badge/206636551.svg)](https://zenodo.org/badge/latestdoi/206636551)
+
 Preprint: https://www.biorxiv.org/content/10.1101/759944v1?rss=1
 
 ### Key idea
