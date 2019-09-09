@@ -47,12 +47,12 @@ R -e "devtools::install_deps(dependencies = TRUE)"
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mbjoseph/neuralecology/master)
 
-This repo comes with toy models in Jupyter notebooks:
+The `notebooks/` subdirectory contains toy models in Jupyter notebooks:
 
-- [A neural occupancy model](binder/simple-occupancy.ipynb)
-- [A neural dynamic occupancy model](binder/dynamic-occupancy.ipynb)
-- [A neural N-mixture model](binder/n-mixture-model.ipynb)
-- [A deep Markov model for capture-recapture data](binder/hidden-markov-model.ipynb)
+- [A neural occupancy model](notebooks/simple-occupancy.ipynb)
+- [A neural dynamic occupancy model](notebooks/dynamic-occupancy.ipynb)
+- [A neural N-mixture model](notebooks/n-mixture-model.ipynb)
+- [A deep Markov model for capture-recapture data](notebooks/hidden-markov-model.ipynb)
 
 ## Building the paper
 
