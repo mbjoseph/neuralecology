@@ -1,0 +1,888 @@
+---
+# title: ""
+title: "Neural hierarchical models of ecological populations"
+bibliography: library.bib
+output: 
+  bookdown::pdf_document2:
+    keep_tex: TRUE
+    toc: FALSE
+    # uncomment below for submission (and change title to "")
+    # includes:
+    #   before_body: title.sty
+    #   in_header: doc-prefix.tex
+    # uncomment below for preprint (and include title in this Rmd file)
+    extra_dependencies:
+      neurips_2019: ["preprint"]
+    includes:
+      in_header: preprint-prefix.tex
+editor_options: 
+  chunk_output_type: console
+fontsize: 12pt
+csl: ecology-letters.csl
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(fig.align='center') 
+library(knitr)
+library(tidyverse)
+library(here)
+here::here()
+```
+
+
+\begin{abstract}
+Neural networks are increasingly being used in science to infer hidden dynamics of natural systems from noisy observations, a task typically handled by hierarchical models in ecology. 
+This paper describes an emergent class of hierarchical models parameterized by neural networks --- neural hierarchical models --- and develops a case study with bird populations in the United States.
+The derivation of such models is outlined beginning with the relationship between linear regression and neural networks, and analogously between a hierarchical ecological model (a dynamic occupancy model), and its neural counterpart. 
+The resulting neural hierarchical model, trained on millions of detection/non-detection time series for hundreds of species, provides insights into colonization and extinction at a continental scale. 
+The model also demonstrates good quantitative predictive performance and reasonable qualitative results about range shifts and macroecological patterns of population persistence at range boundaries.
+Flexible models are increasingly needed that scale to large data and represent ecological processes. 
+Neural hierarchical models satisfy this need, providing a bridge between deep learning and ecological modeling that combines the function representation power of neural networks with the inferential capacity of hierarchical models. 
+\end{abstract}
+
+# Introduction {-}
+
+Deep neural networks have proved useful in myriad tasks due their ability to represent complex functions over structured domains [@lecun2015deep]. 
+While ecologists are beginning to use such approaches, e.g., to identify animals in camera trap images [@norouzzadeh2018automatically], there has been relatively little integration of deep neural networks in ecological models of population dynamics.
+
+Ecological dynamics that regulate populations are difficult to observe, and inference often proceeds by modeling the relationship between imperfect data and latent quantities or processes of interest with hierarchical models [@wikle2003hierarchical]. 
+For example, occupancy models estimate the presence or absence of a species using imperfect detection data [@mackenzie2002estimating], and "dynamic" occupancy models estimate extinction and colonization dynamics [@mackenzie2003estimating].
+Population growth provides another example, motivating hierarchical models that link noisy observations to mechanistic models [@de2002fitting].
+In such models, it is often desirable to account for heterogeneity among sample units (e.g., differences among habitats and survey conditions), to better understand ecological dynamics. 
+
+Many hierarchical models in ecology account for heterogeneity among sample units using a linear combination of covariate values, despite there often being reasons to expect non-linearity [@lek1996application; @austin2002spatial; @oksanen2002continuum]. 
+A variety of solutions exist to account for non-linearity.
+For example, Gaussian processes have been used for species distribution models [@latimer2009hierarchical; @golding2016fast], in animal movement models [@johnson2008general], and in point process models for distance sampling data [@johnson2010model; @yuan2017point].
+Generalized additive models also have been used to account for spatial autocorrelation  [@miller2013spatial; @webb2014location], nonlinear responses to habitat characteristics [@knapp2003developing; @bled2013dynamic], and differential catchability in capture-recapture studies [@zwane2004semiparametric].
+
+Machine learning provides additional tools for approximating potentially nonlinear functions in hierarchical models. 
+For example, @hutchinson2011incorporating combined a site-occupancy model with an ensemble of decision trees to predict bird occurrence, combining a structured observation and process model from ecology with a flexible random forest model. 
+Similar hybrid approaches could be developed for other classes of ecological models and/or machine learning methods.
+Neural networks seem particularly worthy of attention, given their successful applications in other domains [@lecun2015deep]. 
+
+Neural networks have been used in ecology to model observations of populations, but to date have not been integrated into hierarchical models that explicitly distinguish between ecological processes and imperfect observations. 
+For example, neural networks have been used to model the observed abundance of aquatic organisms, but without distinguishing observed from true abundance [@chon2001patterning; @jeong2001prediction; @jeong2008non; @malek2012applying].
+Neural networks also have been used to model stock-recruitment and apparent presence/absence data [@manel1999comparing; @chen2006neural; @ozesmi2006methodological; @harris2015generating; @chen2016deep], but have not yet been extended to account for imperfect detection, despite increasing recognition of its importance [@guillera2017modelling; @tobler2019joint]. 
+Notably, standard neural networks that classify or predict data are of limited use for ecological applications where the data tend to be imperfect, and the primary goal is learning about the dynamics of hard to observe systems. 
+As a solution, this paper describes neural hierarchical models that combine the function representation capacity of neural networks with hierarchical models that represent ecological processes. 
+
+# Related work {-}
+
+## Neural networks {-}
+
+Neural networks are function approximators.
+Linear regression is a special case, where $x$ is mapped to a predicted value $y$:
+  
+  $$y = w^T x,$$
+
+where $w$ is a parameter vector (Fig. \@ref(fig:figure2)a). 
+Predicted values are linear combinations of the inputs $x$ due to the product $w^T x$, which restricts the complexity of the mapping from $x$ to $y$. 
+
+Instead of modeling outputs as linear functions of $x$, a model can be developed that is a linear function of a nonlinear transformation of $x$.
+A nonlinear transformation can be specified via polynomial terms, splines, or another basis expansion [@hefley2017basis], but neural networks parameterize the transformation via a set of sequential hidden layers [@goodfellow2016deep]. 
+
+In a neural network with one hidden layer, the first hidden layer maps the length $D$ input $x$ to a length $D^{(1)}$ vector of "activations" $a^{(1)} = W^{(1)} x$, where $W^{(1)}$ is a $D^{(1)} \times D$ parameter matrix.
+The activations are passed to a differentiable nonlinear activation function $g$ to obtain the "hidden units" of the first layer $h^{(1)} = g(a^{(1)})$ (Fig. \@ref(fig:figure2)b).
+
+The final layer of a neural network maps the last hidden layer to an output. 
+For a neural network with one hidden layer, if the output variable $y$ is a $K$ dimensional vector,  the output unit activations are given by $a^{(2)} = W^{(2)} h^{(1)}$, where $W^{(2)}$ is a $K \times D^{(1)}$ parameter matrix.
+The output activation can be written as the composition of functions that transform the inputs $x$:
+
+$$a^{(2)} = W^{(2)} \Big( g(W^{(1)} x) \Big).$$
+
+Written this way, it is apparent that linear regression is a special case of a neural network with zero hidden layers.
+Similar to link functions in generalized linear models, outputs can be transformed by an output activation function. 
+For example, if $y$ is unbounded, the identity function can act as an output activation so that $y = a^{(2)}$. 
+Neural networks that predict probabilities typically use a sigmoid (inverse logit) activation function. 
+
+Neural networks usually are trained using stochastic gradient based optimization to minimize a loss function, e.g., the negative log likelihood of a Gaussian distribution for a regression task, a Bernoulli distribution for binary classification, or a Poisson distribution for a count model.
+Partial derivatives of the model parameters are computed with respect to the loss value via backpropagation, and parameters are updated to reduce the loss. 
+In practice, these partial derivatives are often computed via automatic differentiation over a "mini-batch" of samples, which provides a noisy estimate of the gradient [@ruder2016overview].
+
+Neural networks are popular both because of their practical successes in a wide variety of applications, and because they possess some desirable theoretical properties. 
+A neural network with suitable activation functions and a single hidden layer containing a finite number of neurons can approximate nearly any continuous function on a compact domain [@cybenko1989approximation; @hornik1991approximation].
+"Deep" neural networks with many sequential hidden layers also possess desirable theoretical properties for function representation [@lu2017expressive].
+The field of deep learning, which applies such networks, provides a variety of network architectures to account for temporal structure [@hochreiter1997long], spatial structure on regular grids [@long2015fully], or graphs [@niepert2016learning], sets of unordered irregular points [@li2018pointcnn], and spatiotemporal data on grids or graphs [@xingjian2015convolutional; @jain2016structural].
+
+The potential for deep learning has been recognized in Earth science [@reichstein2019deep], the natural sciences [@ching2018opportunities; @gazestani2019genotype; @roscher2019explainable], physical sciences [@carleo2019machine],  chemical sciences [@butler2018machine], and ecology [@christin2018applications; @Desjardins-Proulx161125].
+For example, models of lake temperature that combine neural networks with loss functions consistent with known physical mechanisms perform better than physical models and neural networks applied alone [@karpatne2017physics]. 
+Similarly, generative adversarial networks with loss functions that encourage mass-balance have expedited electromagnetic calorimeter data generation from the Large Hadron Collider [@paganini2018accelerating; @radovic2018machine]. 
+Convolutional neural networks also have been successfully deployed in population genetics to make inferences about introgression, recombination, selection, and population sizes [@flagel2018unreasonable]. 
+In ecology, hierarchical models present an opportunity to develop similar science-based deep learning methods [@wikle2019comparison].
+
+## Hierarchical models {-}
+
+Hierarchical models combine a data model, a process model, and a parameter model [@berliner1996hierarchical; @wikle2003hierarchical]. 
+Data models represent the probability distribution of observations conditioned on a process and some parameters, e.g., the probability of capturing a marked animal, given its true state (alive or dead). 
+Process models represent probability distribution of the states and their dynamics, conditioned on some parameters. 
+State variables are often incompletely observed, e.g., whether an individual animal is alive or whether a site is occupied. 
+Parameter models represent probability distributions for unknown parameters - priors in a Bayesian framework. 
+In a non-Bayesian setting, parameters are treated as unknowns and estimated from the data, but parameter uncertainty is not represented using probability distributions [@cressie2009accounting]. 
+
+
+# Neural hierarchical models {-}
+
+```{r figure2, fig.cap="Computation graphs for (a) linear regression, (b) a neural network with one hidden layer, (c) a dynamic occupancy model, (d) a single species neural dynamic occupancy model, and (e) a deep multi-species neural dynamic occupancy model with species embeddings. Yellow and red indicate quantities specific to process and observation components respectively. Inputs are represented by $x$, and predicted values in panels (a) and (b) by $y$. Hidden layers are represented by $h$, with layer-specific superscripts. Outputs include initial occupancy ($\\psi_1$), persistence ($\\phi$), colonization ($\\gamma$), and detection ($p$) probabilities. Latent species embedding vectors are represented by $v$, and GRU indicates a gated recurrent unit.", fig.show='hold', fig.width = 2}
+knitr::include_graphics(here('fig', 'fig2.pdf'))
+```
+
+Neural hierarchical models are hierarchical models in which the observation, process, or parameter model is parameterized by a neural network. 
+These models are hierarchical (sensu @berliner1996hierarchical) if they distinguish between a modeled process and available data, e.g., between partial differential equations and noisy observations of their solutions [@raissi2018deep]. 
+"Deep Markov models" - hidden Markov models parameterized by neural networks - provide an example, with successful applications in polyphonic music structure discovery, patient state reconstruction in medical data, and time series forecasting [@krishnan2017structured; @rangapuram2018deep]. 
+State-space neural networks that use recurrent architectures provide another example dating back two decades [@zamarreno1998state; @van2002freeway].
+This class of models inherits the flexibility and scalability of neural networks, along with the inferential power of hierarchical models, but applications in ecology and environmental science are only just beginning to emerge [@wikle2019comparison].
+
+Construction of such models from existing hierarchical models is straightforward.
+One can propose neural variants of occupancy models [@mackenzie2002estimating], dynamic occupancy models [@mackenzie2003estimating; @royle2007bayesian], N-mixture models [@royle2004n], mark-recapture models [@jolly1965explicit; @calvert2009hierarchical], and other hidden Markov models [@patterson2009classifying; @langrock2012flexible]. 
+Output activation functions can be determined from inverse link functions, e.g., sigmoid (inverse logit) activations for probabilities, and loss functions can be constructed from the negative log likelihoods (see Appendix S1 in Supporting Information for example model specifications). 
+To provide a concrete use case, a neural dynamic occupancy model is developed for extinction and colonization dynamics of North American bird communities.
+
+## Case study {-}
+
+```{r load-summary, message=FALSE}
+summary_df <- read_csv(here('data', 'cleaned', 'bbs-summary.csv'))
+printnum <- function(x) {
+  trimws(prettyNum(x, big.mark=","))
+}
+```
+
+The North American Breeding Bird Survey (BBS) is a large-scale annual survey aimed at characterizing trends in roadside bird populations [@link1998estimating; @sauer2011analysis; @sauer2013north; @bbs2018].
+Thousands of routes are surveyed once a year during the breeding season. 
+Surveys consist of volunteer observers that stop 50 times at points 800 meters apart on a transect, and record all birds detected within 400 meters for three minutes. 
+Species can be present, but not detected, and may go locally extinct or colonize new routes from year to year, motivating the development of dynamic occupancy models which use imperfect detection data to estimate latent presence or absence states [@mackenzie2003estimating; @royle2007bayesian]. 
+
+This case study uses BBS data from 1997-2018 excluding unidentified or hybrid species, restricting the analysis to surveys which meet the official BBS criteria [@bbs2018]. 
+The resulting data consists of `r printnum(summary_df$n_species)` species sampled at `r printnum(summary_df$n_routes)` routes, for a total of `r printnum(summary_df$n_surveys)` surveys (not every route is surveyed in each year), `r printnum(summary_df$n_stops)` stops, and `r printnum(summary_df$n_detection_records)` detection/non-detection observations.
+
+### Process model {-}
+
+A multi-species dynamic occupancy model for spatially referenced routes $s = 1, ..., S$, surveyed in years $t=1,...T$, for species $j=1,...,J$ aims to estimate colonization and extinction dynamics through time. 
+The true occupancy state $z_{t, s, j}=1$  if species $j$ is present, and $z_{t, s, j} = 0$ if species $j$ is absent.
+The model represents $z_{t, s, j}$ as a Bernoulli distributed random variable, where $\text{Pr}(z_{t, s, j} = 1) = \psi_{t, s, j}$. 
+The probability of occurrence on the first timestep is $\psi_{t=1, s, j}$.
+Subsequent dynamics are determined by probabilities of persistence from time $t$ to $t+1$ denoted $\phi_{t,s,j}$, and probabilities of colonization from time $t$ to $t+1$ denoted $\gamma_{t, s, j}$, so that the probability of occurrence in timesteps $t=2, ..., T$ is [@mackenzie2003estimating]:
+
+$$\psi_{t, s, j} = z_{t-1, s, j} \phi_{t-1, s, j} + (1 - z_{t-1, s, j}) \gamma_{t-1, s, j}.$$ 
+
+### Observation model {-}
+
+Let $y_{t, s, j}$ represent the total number of stops at which species $j$ was detected in year $t$ on route $s$. 
+Conditional on a species being present, it is detected at each stop with probability $p_{t, s, j}$. 
+Assume that there are no false-positive detections, so that if a species is absent, it cannot be detected [but see @royle2006generalized]. 
+With $k=50$ replicate stops on each transect, the observations can be modeled using a Binomial likelihood for one species-route-year combination: 
+
+$$[y_{t, s, j} \mid z_{t, s, j}, p_{t, s, j}] = \text{Binomial}(y_{t, s,j } \mid z_{t, s, j} p_{t, s, j}, k),$$
+
+where square brackets denote the probability function. 
+The joint likelihood corresponds to the product of these terms for all years, routes, and species [@dorazio2010models].
+
+### Parameter models {-}
+
+Heterogeneity in parameter values among routes, years, species, and surveys was represented differently in three models of increasing complexity: a baseline model that maps input features to parameters with a linear combination on the logit scale [@mackenzie2003estimating], a single-species neural hierarchical model that maps inputs to parameters using a neural network with one hidden layer, and a multi-species deep neural hierarchical model (Fig. \@ref(fig:figure2)c-e). 
+For all models, input features included Environmental Protection Agency (EPA) level one ecoregions, the first eight principal components of the standard 19 WorldClim Bioclimatic variables averaged across the years 1970-2000, computed for the coterminous United States [@fick2017worldclim], BBS route spatial coordinates, distance from the coast, elevation, and road density within 10 km from the Global Roads Inventory Project [@meijer2018global]. 
+The model of detection probabilities additionally included survey-level features including temperature, duration, wind, and air conditions. 
+
+The neural hierarchical model architectures were motivated by joint species distribution models in which species load onto a shared set of latent factors [@thorson2015spatial; @warton2015so; @ovaskainen2016uncovering; @thorson2016joint; @tikhonov2017using], and by recent work on deep neural basis expansions [@mcdermott2019deep; @wikle2019comparison]. 
+Analogously, the neural networks combined inputs into a latent vector for each route via a series of hidden layers, which is then passed as inputs to hidden layers associated with initial occupancy, colonization, extinction, and detection probabilities. 
+These hidden layers act as latent factors, mapped via a loading matrix to process and observation parameters. 
+
+The architecture of the multi-species neural dynamic occupancy model additionally built upon previous work on deep multi-species embedding [@chen2016deep] and encoder-decoder architectures used in sequence to sequence translation [@sutskever2014sequence].
+Route-level features were encoded via a series of hidden layers, then passed to a recurrent neural network that decodes a multivariate time series of latent vectors associated with colonization, persistence, and detection [@chung2014empirical]. 
+An entity embedding was constructed for each species that combined information among species within genera, families, and orders, and a neural network parameterized species-specific weights for each latent spatiotemporally referenced route feature. 
+The dot product of species-specific weights and latent spatiotemporal route features generated values for colonization, persistence, and detection probabilities. 
+For additional details, see Appendix S2 in Supporting Information.
+
+### Model evaluation {-}
+
+```{r load-routes, message=FALSE}
+clean_routes <- read_csv(here('data', 'cleaned', 'clean_routes.csv'))
+route_counts <- count(clean_routes, group)
+```
+
+To facilitate predictive performance comparisons, EPA level two ecoregions were randomly assigned to training, validation, and test sets with equal probability [@roberts2017cross].
+This resulted in `r route_counts$n[route_counts$group == "train"]` training routes, `r route_counts$n[route_counts$group == "validation"]` validation routes, and `r route_counts$n[route_counts$group == "test"]` test routes.
+Training routes were used for parameter estimation, and validation routes were used to select the best performing model based on validation set log-likelihood. 
+The best performing model was retrained using the training and validation data, and the withheld test set routes were used to estimate predictive performance of the final model [@russell2016artificial]. 
+Predictive performance was evaluated by computing 95% prediction interval coverage of test set counts, and the area under the receiver operator characteristic curve (AUC) for binarized detection data.
+For the AUC analysis, cases were taken to be detections $y_{t, s, j} > 0$ and controls were non-detections $y_{t, s, j} = 0$. 
+Predicted test set observation probabilities were constructed via marginalization over latent states so that $\text{Pr}(y_{t, s, j} = 0 \mid p_{t, s, j}, \psi_{t, s, j}) = 1 - \psi_{t, s, j} + \psi_{t, s, j}(1 - p_{t, s, j})^{50}$. 
+Predicted occupancy probabilities for withheld test set routes were computed recursively following @mackenzie2003estimating.
+
+```{r roc-test, fig.cap='(a) Receiver operator characteristic curves of binarized detection/non-detection data for each survey route in the test set, colored by the area under the curve (AUC). Here, the x-axis is the complement of specificity: the ratio of the number of false positives (incorrectly predicted detections, with no observed detections) to the sum of false positives and true negatives (correctly predicted non-detections with observed non-detections). The y-axis is true positive rate: the ratio of the number of true positives (correctly predicted detections with observed detections) to the sum of true positives and false negatives (incorrectly predicted non-detections with observed detections). The overall distribution of AUC values is shown in (b), and (c) shows the locations of test set routes colored by AUC values, where black dots represent routes that were used to train the final model.'}
+knitr::include_graphics(here('fig', 'roc-test.jpg'))
+```
+
+
+Predictions from final model were qualitatively evaluated to see whether they are plausible, given previous work.
+The most likely occupancy states were computed at all BBS routes for each year and species [@viterbi1967error], which were then used to compute finite sample population growth rates for each species [@royle2007bayesian].
+To quantify range shifts, annual spatial centroids were computed for each species among routes that were predicted to be occupied (hereafter referred to as "BBS range centroids" to differentiate from the actual centroid of a species' entire range). 
+To evaluate whether the results were consistent with previous findings that population persistence probabilities are highest in the center of a species' range, correspondence between BBS range centroids and persistence probabilities were also assessed using linear regression [@mehlman1997change; @royle2007bayesian].
+These qualitative analyses only used BBS routes surveyed in every year, and species that occurred in all years and at 100 or more routes to avoid bias associated with recently added Canadian routes, and variance associated with rare species [@sauer2017expanding].
+
+Finally, to facilitate interpretation of the final model, additional analyses were performed that provide insight into how the model represented BBS routes and bird species. 
+First, route-level features were visualized using t-distributed stochastic neighbor embedding, which maps high dimensional vectors to lower dimensional representations [@maaten2008visualizing]. 
+In this lower dimensional space, routes with similar embeddings are close together, and routes with dissimilar embeddings appear distant.
+By mapping original inputs into this lower dimensional space, it is possible to evaluate how model inputs relate to latent representations [@rauber2016visualizing]. 
+Second, species' loading vectors, which described how spatiotemporal route features are weighted by process and observation parameters, were compared in terms of cosine similarity, which measures the orientation of loading vectors in latent space, with the expectation that species' occupancy will be positively related if loading vectors are oriented similarly.
+
+### Results {-}
+
+```{r nll-table, message=FALSE} 
+nll <- read_csv(here('out', 'nll-comps.csv'))
+valid_nll <- filter(nll, group == 'Validation data')
+train_nll <- filter(nll, group == 'Training data')
+coverage_df <- read_csv(here('out', 'coverage_df.csv'))
+auc_df <- read_csv(here('out', 'auc_df.csv'))
+dec_df <- read_csv(here('out', 'dec_df.csv'))
+
+cosine_sim <- read_csv(here('out', 'cosine_sim.csv'))
+bbs_species <- read_csv(here('data', 'cleaned', 'bbs_species.csv')) %>%
+  mutate(sciname = paste(genus, species))
+select_paths <- read_csv(here('out', 'select_paths.csv')) %>%
+  arrange(-growth_rate)
+
+notable_phi_sp <- dec_df %>%
+  top_n(1, phid_cor) %>%
+  bind_rows(top_n(dec_df, 1, -phid_cor)) %>%
+  left_join(bbs_species)
+```
+
+The multi-species neural hierarchical model performed best on the withheld validation routes, with a difference in mean validation set negative log likelihood of `r round(valid_nll$ss_nll - valid_nll$nn_nll, 3)` relative to the baseline model and `r round(valid_nll$ss_nll - valid_nll$sn_nll, 3)` relative to the single-species neural hierarchical model.
+For the final model, 95% prediction interval coverage for observed counts at withheld test set routes was `r round(mean(coverage_df$coverage), 3) * 100`%, with a standard deviation of `r round(sd(coverage_df$coverage), 3) * 100`%, a minimum of `r round(min(coverage_df$coverage), 3) * 100`%, and a maximum of `r round(max(coverage_df$coverage), 3) * 100`%. 
+The model also predicted whether species would be detected on test set routes fairly well, with a mean test set AUC of `r round(mean(auc_df$.estimate), 3)`, an among-route standard deviation of `r round(sd(auc_df$.estimate), 3)`, a minimum of `r round(min(auc_df$.estimate), 3)`, and a maximum of `r round(max(auc_df$.estimate), 3)` (Fig. \@ref(fig:roc-test)).
+
+
+```{r centroid-displacement, fig.cap='(a) Scatter plot relating the centroid displacement of bird species (x-axis) from 1997 to 2018 in kilometers to finite-sample growth rate (y-axis), where a growth rate of 1 is stable, values less than one are decreasing, and values greater than one are increasing. Species with the highest population growth rates are highlighted. Panel (b) shows the locations of breeding bird survey range centroids in 1997 and 2018 for each highlighted species, along with blue points that represent survey routes where the species was estimated to be present in at least one year.', out.width = "400px"}
+knitr::include_graphics(here('fig', 'centroid-displacement.jpg'))
+```
+
+```{r, echo = FALSE}
+highest_growth_rates <- paste0(
+  tools::toTitleCase(select_paths$english[2:4]), 
+  ' (*', 
+  paste(tools::toTitleCase(select_paths$genus), select_paths$species)[2:4], 
+  '*)')
+```
+
+Qualitative results related to range shifts and population growth rates were plausible given previous work.
+The model identified the invasive Eurasian Collared-Dove (*Streptopelia decaocto*) as having the greatest range centroid displacement from 1997 to 2018 and the highest finite sample population growth rate (Fig. \@ref(fig:centroid-displacement)), consistent with its invasion of North America from Florida following its introduction in the 1980's [@bled2011hierarchical].
+Increasing trends also have previously been reported for the species with the next three highest population growth rates: 
+`r highest_growth_rates[1]`, `r highest_growth_rates[2]`, and `r highest_growth_rates[3]` [@sauer2013north]. 
+
+```{r persist-dist, fig.cap='(a) Persistence probabilities (y-axis) as a function of distance from range centroid, averaged across years for the species with the largest positive relationship between distance from range centroid and persistence probability (top row), and largest negative relationship (bottom row). Each point represents a North American Breeding Bird Survey route. (b) Maps of persistence probabilities at each breeding bird survey route where these species were estimated to be present (in color), with route locations where the species was never estimated to be present in grey. Centroids for each year are shown in solid black. (c) Scatter plot relating the total number of occurrences across all routes and years (x-axis) to the slope of the relationship between distance from range centroid and persistence probability ($d_c$, on the y-axis). Each point represents a species. Points below the dashed line correspond to species with lower persistence at routes distant from their range centroids.', out.width = "400px"}
+knitr::include_graphics(here('fig', 'persist-dist-plot.jpg'))
+```
+
+The majority (`r round(mean(dec_df$phid_cor < 0), 2) * 100`%) of common species were less likely to persist at routes that were distant from their estimated BBS range centroids. 
+Examples from the species with the greatest positive and negative relationships between centroid distance and persistence are shown in Fig. \@ref(fig:persist-dist)a-b.
+Species that occurred in many routes and in many years tended to show consistently negative relationships between persistence and distance from range centroids (Fig. \@ref(fig:persist-dist)c). 
+
+```{r route-tsne, fig.cap='A two dimensional plot of North American Breeding Bird Survey route embeddings, computed using t-distributed stochastic neighbor embedding (t-SNE) on the latent vectors for initial occupancy, persistence, colonization, and detection probabilities for each route. Color indicates (a) EPA level 1 ecoregion and (b) z-standardized continuous route-level features. PC1 refers to the first principal component of WorldClim climate data. Notice clustering both by ecoregion, and by continuous route-level features.', out.width = "400px"}
+knitr::include_graphics(here('fig', 'route_tsne.jpg'))
+```
+
+Route vectors combined information from the categorical and continuous route-level features.
+Unsurprisingly (because ecoregion was an input feature), routes in the same ecoregions clustered together (Fig. \@ref(fig:route-tsne)a).
+Route embeddings also capture learned relationships among ecoregions. 
+For example, Marine West Coast Forest ecoregion routes were similar to Northwestern Forested Mountains routes, and most different from Eastern Temperate Forests routes (Fig. \@ref(fig:route-tsne)a). 
+Variation within clusters also related to continuous route-level features (Fig. \@ref(fig:route-tsne)b). 
+
+```{r occupancy-scatter, fig.cap='Relationships among species estimated occupancy probabilities through time, by location for species pairs that are nearest neighbors in weight cosine distance (left column), and most cosine dissimilar (right column). Color indicates EPA level 1 ecoregions. Cosine similarity values for species pairs are printed in the upper corners of each panel. Each route is a line segment that connects estimates of occupancy probabilities for each year from 1997 to 2018.', out.width = "400px"}
+knitr::include_graphics(here('fig', 'occupancy_scatter.jpg'))
+```
+
+The model predicted non-linear dependence among species that is interpretable in terms of the cosine similarity among species-specific weight vectors.
+For example, weights for Mourning Dove (*Zenaida macroura*) were closest to those of `r cosine_sim$nearest_species[cosine_sim$english == 'Mourning Dove']` (*`r bbs_species$sciname[bbs_species$english == cosine_sim$nearest_species[cosine_sim$english == 'Mourning Dove']]`*), and most different from `r cosine_sim$farthest_species[cosine_sim$english == 'Mourning Dove']` (*`r bbs_species$sciname[bbs_species$english == cosine_sim$farthest_species[cosine_sim$english == 'Mourning Dove']]`*) (Fig. \@ref(fig:occupancy-scatter)a).
+On BBS routes where Mourning Doves are likely to occur, `r cosine_sim$nearest_species[cosine_sim$english == 'Mourning Dove']` are also likely to occur, and `r cosine_sim$farthest_species[cosine_sim$english == 'Mourning Dove']` are unlikely to occur.
+Species pairs of the most similar and most dissimilar loadings are also provided for Eurasian Collared-Dove and Wilson's Warbler (Fig. \@ref(fig:occupancy-scatter)b-c).
+
+# Discussion {-}
+
+Neural hierarchical models provide a bridge between hierarchical models that make use of scientific knowledge, and neural networks that approximate functions over structured domains. 
+This framework integrates multiple threads of research in science-based deep learning and ecological modeling, and can use existing hierarchical models as a starting point.
+The case study provides a proof of concept example of constructing a scalable and performant neural hierarchical model based on a multispecies dynamic occupancy model, providing insights about colonization and extinction dynamics of North American bird assemblages at a continental scale. 
+
+```{r}
+highest_slope_species_english <- notable_phi_sp$english[which.max(notable_phi_sp$phid_cor)]
+highest_slope_species_sciname <- bbs_species %>%
+  filter(english == highest_slope_species_english) %>%
+  mutate(sciname = paste(genus, species)) %>%
+  select(sciname) %>%
+  unlist
+```
+
+The analysis of breeding bird survey data indicate that neural hierarchical models can outperform simpler models. 
+Notably, the final model was performant both quantitatively and qualitatively, detecting population increases and range expansions that are consistent with prior work.
+The case study extends previous analyses of persistence probabilities at range edges [@royle2007bayesian], indicating that common species tended to be more persistent at routes close to their BBS range centroid. 
+The strongest exception to this trend might be a consequence of the centroid providing a poor measure of central tendency of the BBS range.
+In particular, for the `r highest_slope_species_english` (*`r highest_slope_species_sciname`*), which had the strongest positive relationship between persistence probability and distance from BBS range centroid, the BBS range is irregularly shaped such that the centroid lies at the range boundary, and the northern range of the species is not as well represented in BBS routes. 
+This highlights some challenges posed by irregular range geometry and incomplete sampling of species ranges for macroecological studies that have been pointed out for similar questions about species abundance at observed range edges [@sagarin2002abundant; @dallas2017species; @knouft2018appropriate].
+
+The case study used a gated recurrent neural network architecture to capitalize on temporal structure [@chung2014empirical], and architectures designed for other data structures present other opportunities for ecological applications. 
+For example, neural hierarchical models could be used to couple a convolutional neural network observation model for camera trap images [@norouzzadeh2018automatically; @tabak2019machine] with an ecological process model that describes animal density, movement, or community composition [@burton2015wildlife]. 
+Other ecological data structured on regular grids such as modeled climate data, remotely sensed Earth observations, and even 96 well microplates also might use convolutional neural network architectures. 
+In addition, many ecological datasets exhibit graph structure related to phylogenies, social networks, or network-like spatial structure. 
+While it is possible to adapt convolutional neural networks to operate on distance matrices computed from graphs [@fioravanti2018phylogenetic], there are a variety of graph representation learning approaches that provide embeddings for nodes that encode network structure and node attributes [@hamilton2017inductive; @cai2018comprehensive]. 
+
+Neural hierarchical models can scale to data that are too large to fit in computer memory. 
+This is particularly relevant for extensions of the BBS case study, given the volume of (imperfect) bird data accumulating through citizen science programs [@sullivan2009ebird]. 
+The key strategy providing this scalability is stochastic optimization that uses mini-batches - small subsets of a larger dataset - that provide a noisy estimate of model performance and partial derivatives that can be used during training without ever needing to load the entire dataset into memory [@ruder2016overview]. 
+This could be useful as a way to scale models that integrate BBS, eBird, and other data [@ngiam2011multimodal; @pacifici2017integrating; @zipkin2017integrating; @MistNet2].
+
+Looking ahead, in a forecasting or decision-making setting, it would be important to estimate both aleatoric uncertainty (arising from noise in an observation process) and epistemic uncertainty (arising from uncertainty in a model and its parameters) [@clark2001ecological; @kendall2017uncertainties].
+Recent advances in accounting for uncertainty in neural network parameter estimates and architectures could be applied in future work. 
+Approaches include "Bayes by backpropagation" [@blundell2015weight], normalizing flows for variational approximations [@kingma2016improved], adversarial training [@lakshminarayanan2017simple], methods that use dropout or its continuous relaxation [@gal2017concrete], and ensemble approaches [@mcdermott2017ensemble]. 
+In a decision-making context, interpretability and explainability also stands out as a key topic [@rudin2018please]. 
+
+Neural networks have a reputation for being "black-box" models, but recent work provides tools that facilitate the interpretation and explanation of such models [@roscher2019explainable]. 
+Interpretations map abstract concepts to domains that humans can make sense of, e.g., mapping latent vectors or weights of neural network to species identity or spatial location [@montavon2018methods].
+Explanations are collections of features in such a domain that contributed to a prediction [@montavon2018methods], e.g., sensitivity of model output to perturbations of the input [@olden2002illuminating; @gevrey2003review]. 
+
+The potential for combining neural networks with mechanistic models was recognized more than thirty years ago [@psichogios1992hybrid; @meade1994numerical; @lagaris1998artificial]. 
+This potential is more easily realized today due to methodological spillover from deep learning into the natural sciences, but also increases in computing power, availability of ecological data, and the proliferation of educational content for quantitative ecology and machine learning.
+Further, modern deep learning frameworks provide abstractions that allow users to focus on model construction rather than the details of implementation, increasing accessibility in the same way that WinBUGS, JAGS, OpenBUGS, and Stan have done [@lunn2000winbugs; @plummer2003jags; @spiegelhalter2005openbugs; @carpenter2017stan]. 
+
+Although deep learning and ecological modeling may seem to be separate activities, neural hierarchical models bridge these disciplines. 
+Given the increasing availability of massive ecological data, scalable and flexible science-based models are increasingly needed. 
+Neural hierarchical models satisfy this need, and can provide a framework that links imperfect observational data to ecological processes and mechanisms by construction. 
+
+# Acknowledgements {-}
+
+Thanks to David Zonana and Roland Knapp for discussions on the potential of neural hierarchical models, and to Susie Ellis for providing feedback on a draft of the manuscript.
+Also thanks to Brandon Edwards for developing the bbsBayes R package, which was used to acquire and parse the North American Breeding Bird Survey data. 
+This work was motivated by a workshop on machine learning in Earth science, hosted by Earth Lab and organized by the Federation of Earth Science Information Partners and the National Aeronatics and Space Administration Advanced Information Systems Technology program.
+This work was made possible by the CU Boulder Grand Challenge initiative and the Cooperative Institute for Research in the Environmental Sciences through their investment in Earth Lab.
+Thanks also to the thousands of U.S. and Canadian participants who annually perform and coordinate the North American Breeding Bird Survey. 
+
+# Literature cited {-}
+
+<div id="refs"></div>
+
+\clearpage
+
+
+
+
+# Appendix S1 {-}
+
+\setcounter{figure}{0}
+\makeatletter 
+\renewcommand{\thefigure}{S\@arabic\c@figure}
+\makeatother
+
+This appendix includes example specifications for neural occupancy, N-mixture, and hidden Markov models. 
+The goal in providing these specifications is to give concrete examples of neural hierarchical models that are relatively simple, while drawing connections to existing models. 
+Pytorch implementations in Jupyter notebooks are available at https://github.com/mbjoseph/neuralecology.
+
+Generally, the construction of a hierarchical model requires: 
+
+1. A **process model** that represents some ecological dynamics or states that can depend on unknown parameters. 
+2. An **observation model** that relates available data to the process model, possibly dependent on unknown parameters.
+3. A **parameter model** for unknown quantities (e.g., their dependence on some input, or relationship to each other). Traditionally, this is discussed in terms of prior distributions, though there may be rich structure encoded in a parameter model as well [@wikle2003hierarchical]. For a fully Bayesian hierarchical model, all unknowns are represented by probability distributions. In an empirical Bayesian hierarchical model, point estimates are typically used for top-level parameters instead, so that these top-level parameters are treated as fixed, but unknown [@cressie2009accounting]. In the examples below, neural networks are applied at the parameter model stage to learn a mapping from inputs to parameters of process and observation models. 
+
+Given these components, parameter estimation can proceed in a few ways, depending on the inferential framework used.
+A loss function can be constructed to find the parameter values that maximize the probability of the data, possibly with some penalties for model complexity (in a maximum likelihood/penalized maximum likelihood framework), find the most probable parameter values, conditional on the data (in a maximum *a posteriori* framework), or compute a probability distribution for all unknowns, conditional on the data (in a Bayesian framework). 
+For many models applied in deep learning, it is often the case that fully Bayesian inference is complicated by high-dimensional multimodal posterior geometry.
+
+The examples here focus primarily on penalized maximum likelihood methods, though Bayesian approaches stand out as a key area for future work (see main text for relevant citations).
+Often, $L_2$ norm penalties (also referred to as "weight decay") are applied on the weights of neural networks in the loss function to penalize model complexity in an effort to avoid overfitting. 
+Additional strategies include early stopping, where an iterative stochastic optimization scheme is terminated before the training set loss stabilizes (or when the validation set loss begins to increase), which is particularly useful for complex models that can overfit quickly. 
+Finally, unlike maximum likelihood estimation for simple models, because of the multimodality of the likelihood surface for neural network weights, there are no guarantees that a global maximum exists, or that a particular optimum is not a local maximum. 
+In practice, this is not a major limitation.
+For more discussion, see @goodfellow2016deep.
+
+## A single-species single-season neural occupancy model {-}
+
+A single-species single-season occupancy model estimates presence/absence states from imperfect detection/non-detection data [@mackenzie2002estimating].
+Assume that $n$ spatial locations are each surveyed $k$ times, during a short time interval for which it is reasonable to assume that the presence or absence of a species is constant. 
+Each spatial location has some continuous covariate value represented by $x_i$ for site $i=1,...,n$, that relates to occupancy and detection probabilities. 
+
+### Observation model {-}
+
+Observations at site $i$ consist of $k$ surveys, where each survey results in a detection or non-detection. 
+Let $y_i$ represent the number of surveys at site $i$ for which a species is detected, and $z_i$ represent the true presence/absence state (if the species is present: $z_i=1$; if absent: $z_i=0$).
+Assuming that the probability of detecting a species on a survey conditional on presence is $p_i$, and that each survey is conditionally independent, the observations can be modeled with a Binomial distribution: 
+
+$$y_i \sim \text{Binomial}(z_i p_i, k).$$
+
+### Process model {-}
+
+The true presence/absence occupancy state $z$ can be treated as a Bernoulli random variable, with occupancy probability $\psi_i$: 
+
+$$z_i \sim \text{Bernoulli}(\psi_i).$$
+
+### Parameter model {-}
+
+A simple approach to account for the effect of the site-level covariate on occupancy and detection would be to include a slope and intercept parameter specific to each component, using the logit function to ensure that estimated probabilities are bounded between 0 and 1: 
+
+$$\psi_i = \text{logit}^{-1} \big( \alpha^{(\psi)} + \beta^{(\psi)} x_i \big),$$
+$$p_i = \text{logit}^{-1} \big( \alpha^{(p)} + \beta^{(p)} x_i \big),$$
+
+where $\alpha^j$ and $\beta^j$ are intercept and slope parameters for component $j$. 
+
+In contrast, a neural hierarchical model might instead account for site-level variation by modeling occupancy and detection probabilities as outputs of a neural network: 
+
+$$\begin{bmatrix}
+   \psi_i \\
+   p_i 
+ \end{bmatrix} = f(x_i),$$
+
+where $f(x_i)$ is a neural network that takes a scalar as input (the site-level covariate $x_i$) and outputs a two dimensional vector containing occupancy and detection probabilities:
+
+$$f(x_i) = \text{logit}^{-1} \big( W^{(2)} g(W^{(1)} x_i) \big),$$
+
+where $W^{(1)}$ and $W^{(2)}$ are weight matrices for the first and second layer, $g$ is a differentiable nonlinear activation function, e.g., the rectified linear unit activation function [@nair2010rectified], and the inverse logit transform is applied element-wise to ensure that $\psi_i$ and $p_i$ lie between 0 and 1. 
+
+
+### Loss function {-}
+
+The negative log observed data likelihood can be taken as the loss function [@mackenzie2002estimating]. 
+Marginalizing over $z$ and treating sites as conditionally independent yields: 
+
+$$L(\theta_f) = - \sum_{i = 1}^{n} \log\ \Big ( \psi_i \text{Binomial}(y_i \mid p_i, k) + I(y_i = 0) (1 - \psi_i)\Big),$$
+
+where $\theta_f$ represents the parameters of the neural network $f$, and $I(y_i=0)$ is an indicator function equal to one when $y_i = 0$ (zero otherwise). 
+
+The loss for any particular site can be computed efficiently using the log-sum-exp trick, which is particularly useful when the log of summands is available (i.e., $\log(\psi_i) + \log \binom{k}{y_i} + y_i \log(p_i) + \log(k - y_i) + \log(1 - p_i)$ and $\log(1 - \psi_i)$ are already computed), as is the case in both Stan and Pytorch, which provide the log probability from the Binomial distribution.
+
+
+## A single-species neural dynamic occupancy model {-}
+
+A single-species dynamic occupancy model can be used to estimate rates of colonization and extinction when detection is imperfect and sites are repeatedly sampled at multiple time points [@mackenzie2003estimating]. 
+Assume that for $T$ timesteps, $n$ spatial locations are each surveyed $k$ times, during a short time interval for which it is reasonable to assume that the presence or absence state is constant. 
+Among timesteps, the true occupancy states of sites can change. 
+Each spatial location has some continuous covariate value represented by $x_i$ for site $i=1,...,n$, that relates to occupancy and detection probabilities. 
+
+### Observation model {-}
+
+Observations at site $i$ in timestep $t$ consist of $k$ surveys, where each survey results in a detection or non-detection. 
+Let $y_{i,t}$ represent the number of surveys at site $i$ in timestep $t$ for which a species is detected, and $z_{i, t}$ represent the true presence/absence state (if the species is present: $z_{i, t}=1$; if absent: $z_{i,t}=0$).
+Assuming that the probability of detecting a species on a survey conditional on presence is $p_i$, the observations can be modeled using a Binomial distribution: 
+
+$$y_{i, t} \sim \text{Binomial}(z_{i, t} p_i, k).$$
+
+
+### Process model {-}
+
+Sites can transition from being unoccupied ($z_{i,t} = 0$) to occupied ($z_{i, t + 1} = 1$) due to colonization, or from being occupied ($z_{i, t} = 1$) to unoccupied ($z_{i, t + 1} = 0)$ due to extinction.
+Let the initial occupancy state be treated as a random Bernoulli variable with probability of occupancy $\psi_{i, 1}$:
+
+$$z_{i, 1} \sim \text{Bernoulli}(\psi_{i, 1}).$$
+
+Subsequent occupancy dynamics at site $i$ for timesteps $t=1, ..., T$ are related to the probability of colonization ($\gamma_i$) and the probability of persistence ($\phi_i$), where the extinction probability is taken to be the complement of persistence ($1 - \phi_i$).
+
+$$z_{i, t} \sim \text{Bernoulli}(z_{i, t - 1} \phi_i + (1 - z_{i, t - 1}) \gamma_i).$$
+
+### Parameter model {-}
+
+In this example, heterogeneity among sites was accounted for using a single layer neural network that ingests the one dimensional covariate $x_i$ for site $i$, passes it through a single hidden layer, and outputs a four dimensional vector of probabilities containing the probabilities of initial occupancy ($\psi_{i, 1}$), persistence ($\phi_i$), colonization ($\gamma_i$), and detection ($p_i$):
+
+$$
+\begin{bmatrix}
+   \psi_{i, 1} \\
+   \phi_i \\
+   \gamma_i \\
+   p_i
+ \end{bmatrix} = f(x_i),
+$$
+where $f$ is a neural network. 
+Concretely, $f$ was parameterized as follows: 
+
+$$f(x_i) = \text{logit}^{-1} \Big( W^{(2)} g(W^{(1)} x_i ) \Big),$$
+
+where $W^{(1)}$ is a weight matrix that generates activations from the inputs, $g$ is the ReLU activation function, $W^{(2)}$ is a weight matrix that maps the hidden layer to the outputs, and $\text{logit}^{-1}$ is the element-wise inverse logistic (sigmoid) function.
+
+
+
+### Loss function {-}
+
+The negative log observed data likelihood was used as the loss function, implemented in Pytorch following the description in @mackenzie2003estimating (equation 5-6), assuming that detection histories for site $i = 1, ..., n$ are conditionally independent and scaling the forward probabilities to avoid underflow as described in @rabiner1989tutorial.
+
+
+## A neural N-mixture model {-}
+
+An N-mixture model can be used to estimate latent integer-valued abundance when unmarked populations are repeatedly surveyed and it is assumed that detection of individuals is imperfect [@royle2004n]. 
+Assume that $J$ spatial locations are each surveyed $K$ times, in a short time interval for which it is reasonable to assume that the number of individuals is constant within locations $j=1, ..., J$. 
+Each spatial location has some continuous covariate value represented by $x_j$, that relates to detection probabilities and expected abundance. 
+
+### Observation model {-}
+
+Observations at site $j$ in survey $k$ yield counts of the number of unique individuals detected, denoted $y_{j, k}$ for all $j$ and all $k$. 
+Assuming that the detection of each individual is conditionally independent, and that each individual is detected with site-specific probability $p_j$, the observations can be modeled with a Binomial distribution where the number of trials is the true (latent) population abundance $n_j$: 
+
+$$y_{j, k} \sim \text{Binomial}(p_j, n_j).$$
+
+
+### Process model {-}
+
+The true population abundance $n_j$ is treated as a Poisson random variable with expected value $\lambda_j$:
+
+$$n_j \sim \text{Poisson}(\lambda_j).$$
+
+### Parameter model {-}
+
+Heterogeneity among sites was accounted for using a single layer neural network that ingests the one dimensional covariate $x_i$ for site $i$, passes it through a single hidden layer, and outputs a two dimensional vector containing a detection probability $p_i$ and the expected abundance $\lambda_i$:
+
+$$
+\begin{bmatrix}
+   \lambda_i \\
+   p_i
+ \end{bmatrix} = f(x_i),
+$$
+
+where $f$ is a neural network with two dimensional output activations $h(x_i)$ computed via: 
+
+$$h(x_i) = W^{(2)} g(W^{(1)} x_i ),$$
+and final outputs computed using the log and logit link functions for expected abundance and detection probability:
+
+$$f(x_i) = \begin{bmatrix}
+   \text{exp}(h_1(x_i)) \\
+   \text{logit}^{-1}(h_2(x_i))
+ \end{bmatrix}.$$
+
+
+Here too $W^{(1)}$ is a weight matrix that generates activations from the inputs, $g$ is the rectified linear unit activation function, and $W^{(2)}$ is a weight matrix that maps the hidden layer to the outputs.
+Additionally $h_1(x_i)$ is the first element of the output activation vector, and $h_2(x_i)$ the second element.
+
+
+### Loss function {-}
+
+The negative log likelihood was used as the loss function, enumerating over a large range of potential values of the true abundance (from $\min(y_j.)$ to $5 \times \max(y_j.)$, where $y_{j.}$ is a vector of counts of length $K$) to approximate the underlying infinite mixture model implied by the Poisson model of abundance [@royle2004n]. 
+It is also worth noting that alternative specifications based on a multivariate Poisson model are possible [@dennis2015computational].
+
+
+
+## A neural hidden Markov model: capture-recapture-recovery {-}
+
+Consider a capture-recapture-recovery study aimed at estimating time-varying parameters [@king2012review]. 
+Assume that individuals $i=1, ..., N$ are initially captured, marked, and released on timestep $t=0$. 
+
+The state of an individual $i$ on time step $t$ is denoted $z_{i, t}$. 
+Individuals are either alive ($z_{i, t} = 0$), recently dead such that their bodies are discoverable (and marks identifiable) ($z_{i, t} = 1$), or long dead such that their bodies are not discoverable and/or marks are no longer identifiable ($z_{i, t} = 2$). 
+
+### Observation model {-}
+
+Observations $y_{i, t}$ are made on time steps $t=1, ..., T$, and if an individual is detected alive on timestep $t$, $y_{i, t} = 1$, and if an individual is detected as recently dead $y_{i, t}=2$, otherwise if the individual is not detected $y_{i, t} = 0$. 
+
+Let $\Omega_t$ denote a time-varying emission matrix containing state-dependent observation probabilities:
+
+$$
+\Omega_t =
+\begin{bmatrix}
+    1-p_t         & p_t & 0         \\
+    1 - \lambda_t & 0   & \lambda_t \\
+    1             &  0  & 0
+\end{bmatrix},
+$$
+
+where $p_t$ is the probability of detecting an individual on timestep $t$, conditional on the individual being alive, and $\lambda_t$ is the probability of recovering a recently dead individual on timestep $t$ that has died since timestep $t-1$. 
+The rows of the emission matrix correspond to states (alive, recently dead, long dead), and the columns correspond to observations (not detected, detected alive, detected dead).
+
+### Process model {-}
+
+At time $t$, the transition probability matrix $\Gamma_t$ contains the probability of transitioning from row $j$ to column $k$:
+
+$$\Gamma_t = 
+\begin{bmatrix}
+    \phi_t  & 1 - \phi_t & 0 \\
+    0       & 0          & 1 \\
+    0       & 0          & 1
+\end{bmatrix},
+$$
+
+where survival probability is $\phi_t = P(z_{i, t + 1} = 0 \mid z_{i, t} = 0)$, dead individuals stay dead, and the rows and columns of the transition matrix correspond to states (alive, recently dead, long dead). 
+
+### Parameter Model {-}
+
+Heterogeneity among timesteps was accounted for using three two-layer neural networks (one for $\phi$, one for $\lambda$, and one for $p$). 
+Each network ingests a univariate time series and outputs a corresponding time series of parameter values (i.e., each network maps a sequence of inputs $x = (x_{t = 1}, ..., x_{t=T})'$ to a sequence of parameter values, e.g., $p= (p_{t=1}, ..., p_{t=T})'$ for the detection probability network: 
+
+$$\phi = \text{logit}^{-1}f^{(\phi)}(x),$$
+$$\lambda = \text{logit}^{-1}f^{(\lambda)}(x),$$
+$$p = \text{logit}^{-1}f^{(p)}(x),$$
+
+where $f^{j}$ is a neural network for parameter $j$.
+
+
+
+### Loss function {-}
+
+The negative log observed data likelihood was used as the loss function, and computed using the forward algorithm [@zucchini2017hidden]. 
+Observation histories for individuals were assumed to be conditionally independent. 
+As an aside, one can specify such models in terms of the complete data likelihood (i.e., in terms of the hidden states) using programming frameworks that implement automatic enumeration of discrete latent variables with finite support, such as Pyro [@bingham2018pyro].
+
+
+\clearpage
+
+
+# Appendix S2 {-}
+
+\setcounter{figure}{0}
+\makeatletter 
+\renewcommand{\thefigure}{S\@arabic\c@figure}
+\makeatother
+
+This appendix includes details on the structure and implementation of the baseline and neural dynamic occupancy models for breeding bird survey data. 
+
+## Baseline model structure {-}
+
+The baseline model was a hierarchical Bayesian dynamic occupancy model, fit separately to each species.
+Let $s = 1, ..., S$ index survey routes, $t=1, ..., T$ index years, and $j=1, ..., J$ index bird species. 
+Dropping subscripts for species $j$, for any particular species' model, presence/absence states are characterized by the following dynamics: 
+
+$$z_{t=1, s} \sim \text{Bernoulli}(\psi_{t=1, s}),$$
+
+$$z_{t, s} \sim \text{Bernoulli}(\phi_{s} z_{t-1, s} + \gamma_{s} (1 - z_{t-1, s})), \quad \text{for} \   t=2, ..., T,$$
+
+where $\psi_{t, s}$ is the probability of occurrence at route $s$ in year $t$, $\phi_{s}$ is the probability of persistence conditional on presence in the previous year, and $\gamma_{s}$ is the probability of colonization conditional on absence in the previous year.
+
+Detection/non-detection data arise via a binomial observation process:
+
+$$y_{t, s} \sim \text{Binomial}(p_{t, s} z_{t, s}, 50),$$
+
+for all $s$ and $t$, where the binomial sample size 50 arises from having 50 stops along each route. 
+
+### Heterogeneity in occupancy dynamics {-}
+
+Heterogeneity in occupancy dynamics was introduced in the model via additive adjustments for EPA level one ecoregions and route-level characteristics (centered and scaled to have mean zero and unit variance):
+
+$$\text{logit}(\psi_{t=1, s}) = X_s \beta^{(\psi_1)} + \alpha_{r[s]}^{(\psi_1)},$$
+
+where $X_s$ is row $s$ from the design matrix $X$ containing the route-level features, $\beta^{(\psi_1)}$ is a parameter vector associated with initial occupancy, and EPA level one adjustments are denoted $\alpha_{r[s]}^{(\psi_1)}$, where $r[s]$ represents the region $r$ containing route $s$. 
+Similarly, persistence and colonization probabilities are modeled as: 
+
+$$\text{logit}(\phi_{s}) = X_s \beta^{(\phi)} + \alpha_{r[s]}^{(\phi)},$$
+
+$$\text{logit}(\gamma_{s}) = X_s \beta^{(\gamma)} + \alpha_{r[s]}^{(\gamma)}.$$
+
+### Heterogeneity in observations {-}
+
+Heterogeneity in detection probability was included as:
+
+$$\text{logit}(p_{t, s}) = X^{(p)}_{(s, t)} \beta^{(p)} + \alpha_{r[s]}^{(p)},$$
+
+where $X^{(p)}_s$ is a augmented version of $X_s$ that adds survey-level features related to detection probability (survey duration, along with start and end sky, temperature, and wind conditions, which vary by route and year), $\beta^{(p)}$ is a coefficient vector, and $\alpha_{r[s]}^{(p)}$ is an ecoregion adjustment.
+
+### Parameter model {-}
+
+Prior distributions were constructed to facilitate borrowing of information across the four parameter dimensions of initial occupancy, persistence, colonization, and detection. 
+Ecoregion adjustments were assigned multivariate normal priors:
+
+$$\begin{bmatrix}
+           \alpha_r^{(\psi_1)} \\
+           \alpha_r^{(\phi)} \\
+           \alpha_r^{(\gamma)} \\
+           \alpha_r^{(p)}
+         \end{bmatrix} \sim \text{MultivariateNormal}\big(0, \Sigma \big),$$
+         
+for regions $r = 1, ..., R$.
+The covariance matrix $\Sigma$ was constructed for each level as $\Sigma = \text{diag}(\sigma) \Omega \text{diag}(\sigma)$, where $\sigma$ is a vector of length 4, $\text{diag}(\sigma)$ is a $4 \times 4$ diagonal matrix with entries equal to $\sigma$, and $\Omega$ is a $4 \times 4$ correlation matrix. 
+
+Prior distributions were specified as follows: 
+
+$\sigma \sim \text{Gamma}(1.5, 10), \\
+\Omega \sim \text{LKJ-Correlation}(10), \\
+\beta^{(\psi_1)} \sim \text{Normal}(0, 1), \\
+\beta^{(\phi)} \sim \text{Normal}(0, 1), \\
+\beta^{(\gamma)} \sim \text{Normal}(0, 1), \\
+\beta^{(p)} \sim \text{Normal}(0, 1).$
+
+### Posterior distribution {-}
+
+The posterior distribution is proportional to:
+
+\begin{align*}
+\prod_t \prod_s \text{Binomial}(y_{t, s} \mid z_{t, s} p_{t, s}, 50) \times \\
+\prod_s \text{Bernoulli}(z_{t=1, s} \mid \psi_{t=1, s}) \prod_{t=2}^T \text{Bernoulli}(z_{t, s} \mid \phi_{s} z_{t-1, s} + \gamma_{s} (1 - z_{t-1, s})) \times \\
+\prod_r [\alpha_r \mid \sigma, \Omega]  \times \\
+[\beta^{(\psi_1)}] [\beta^{(\phi)}] [\beta^{(\gamma)}] [\beta^{(p)}] [\sigma] [\Omega].
+\end{align*}
+
+## Single species neural hierarchical model structure {-}
+
+The single species neural hierarchical model is a dynamic occupancy model parameterized by a neural network.
+Presence/absence states are characterized by the following dynamics: 
+
+$$z_{t=1, s} \sim \text{Bernoulli}(\psi_{t=1, s}),$$
+
+$$z_{t, s} \sim \text{Bernoulli}(\phi_{t-1, s} z_{t-1, s} + \gamma_{t-1, s} (1 - z_{t-1, s})), \quad \text{for} \   t=2, ..., T,$$
+
+where $\psi_{t, s}$ is the probability of occurrence at route $s$ in year $t$, $\phi_{t-1, s}$ is the probability of persistence conditional on presence in the previous year: $\text{Pr}(z_{t, s} = 1 | z_{t-1, s} = 1) = \phi_{t-1, s}$, and $\gamma_{t-1, s}$ is the probability of colonization conditional on absence in the previous year: $\text{Pr}(z_{t, s} = 1 | z_{t-1, s} = 0) = \gamma_{t-1, s}$.
+
+Detection data are modeled using a binomial distribution:
+
+$$y_{t, s} \sim \text{Binomial}(z_{t, s} p_{t, s}, 50),$$
+
+for all $s$, and $t$. 
+
+### Parameter model {-}
+
+Heterogeneity in occupancy and observation parameters was included by modeling initial occupancy, persistence, colonization, and detection probabilities as outputs of a neural network (Fig. \@ref(fig:figs1)). 
+Categorical inputs to the network included EPA level one ecoregions, which were mapped to 8 dimensional numeric vector embeddings, $h^{(L_1)}_r$ for regions $r=1, ..., R$ [@guo2016entity].
+Categorical entity embeddings are equivalent to using one layer of a neural network with 8 dimensional output, where the inputs are one-hot encoded ecoregion codes, but in practice using an embedding layer is more computationally efficient because it capitalizes on the sparsity of a one-hot encoding.
+
+For example, let $R$ represent the number of level 1 ecoregions containing BBS routes ($R = 14$). 
+Let $x_{r[s]}^{(L_1)}$ represent a one-hot encoded vector of length $R$, where all entries are zero except for the index of the level 1 ecoregion containing route $s$ (denoted $r[s]$), which is set equal to one. 
+Then, let $W^{(L_1)}$ represent a weight matrix of size $D^{(L_1)} \times R$, where $D^{(L_1)}$ is the dimensionality of the embedding ($D^{(L_1)}=8$). 
+Note that one-hot encodings are often used linear models, where categorical covariates are coded as dummy variables, and this is a special case where the embeddings are one dimensional. 
+Then, the embedding $h_{r[s]}^{(L_1)}$ for the level 1 ecoregion $r$ containing route $s$ is therefore a vector with $D^{(L_1)}$ elements, given by:
+
+$$h_{r[s]}^{(L_1)} = W^{(L_1)} x_{r[s]}^{(L_1)},$$
+
+which essentially corresponds to extracting column $r$ from the embedding matrix $W^{(L_1)}$.
+
+Embeddings for route $s$ are concatenated with the numeric route-level features $x_s$ (a vector containing climate principal components, road density, distance from coast, latitude, and longitude) to obtain a vector for route $s$ that is the zeroth hidden layer of the neural network $h_s^{(0)}$:
+
+$$h_s^{(0)} = \begin{bmatrix}
+           h_{r[s]}^{(L_1)} \\
+           x_s
+         \end{bmatrix}.$$
+
+This vector $h_s^{(0)}$ is mapped to next hidden layer with $D^{(1)} = 4$ hidden units via a fully-connected layer, followed by leaky rectified linear unit activation functions [@xu2015empirical]. 
+The leaky rectified linear unit activation function is $g(x) = \text{max}(0, x) -0.01 \times \text{min}(0, x)$.
+Thus, the next hidden layer is obtained in a forward pass via:
+
+$$h_s = g(W^{(1)} h_s^{(0)}),$$
+
+where $W^{(1)}$ is a $D^{(1)} \times D^{(0)}$ weight matrix.
+For the single species models, $D^{(0)} = 21$, because there is one embedding of size 8, and an additional 13 elements in the route-level covariate vector $x_s$ (eight principal component axes, elevation, road density, distance from coast, latitude, and longitude).
+
+```{r figs1, fig.cap='Extended computational diagram for the single species neural dynamic occupancy model. Outer grey boxes indicate the different levels of the model (route and year) that index quantities inside the boxes. Yellow nodes indicate occupancy parameters, and red nodes indicate detection parameters. Hidden layers are represented by $h$, with layer-specific superscripts. Outputs include initial occupancy ($\\psi_1$), persistence ($\\phi$), colonization ($\\gamma$), and detection probabilities ($p$).', out.width = "250px"}
+knitr::include_graphics(here('fig', 'figs1.pdf'))
+```
+
+The hidden layer is then mapped to initial occupancy, persistence, colonization, and detection probabilities, via fully connected layers: 
+
+$$\text{logit}(\psi_{s, t=1}) = W^{(\psi_1)} h_s,$$
+$$\text{logit}(\gamma_s) = W^{(\gamma)} h_s,$$
+$$\text{logit}(\phi_s) = W^{(\phi)} h_s,$$
+$$\text{logit}(p_{t, s}) = W^{(p)} (h_s, x^{(p)}_{t, s})' \quad \text{for} \ t = 1, ..., T.$$
+
+Here $W^{(\psi_1)}$, $W^{(\gamma)}$, and $W^{(\phi)}$ are $4 \times 1$ weight matrices, and $W^{(p)}$ is a $(4 + n_p) \times 1$ weight matrix that maps the concatenation of detection-related hidden unit vector $h_s^{(p)}$ with $n_p$ survey specific features contained in the vector $x^{(p)}_{t, s}$ to the detection probability $p_{t, s}$.
+
+
+## Multi-species neural hierarchical model structure {-}
+
+Presence/absence states $z_{t, s, j}$ for all $s$, $t$, and $j$ are equal to 0 if species $j$ is absent from route $s$ in time $t$, and $z_{t, s, j} = 1$ if the species is present.
+Occupancy dynamics are modeled as a function of initial occupancy, persistence, and colonization probabilities [@royle2007bayesian]: 
+
+$$z_{t=1, s, j} \sim \text{Bernoulli}(\psi_{t=1, s, j}),$$
+
+$$z_{t, s, j} \sim \text{Bernoulli}(\phi_{t-1, s, j} z_{t-1, s, j} + \gamma_{t-1, s, j} (1 - z_{t-1, s, j})), \quad \text{for} \   t=2, ..., T,$$
+
+where $\psi_{t, s, j}$ is the probability of occurrence of species $j$ at route $s$ in year $t$, $\phi_{t-1, s, j}$ is the probability of persistence conditional on presence in the previous year, and $\gamma_{t-1, s, , j}$ is the probability of colonization conditional on absence in the previous year.
+
+The observations $y_{t, s, j}$ are integer-valued counts in the set ${0, 1, 2, ..., 50}$ that indicate the number of stops for which species $j$ was detected in year $t$ on route $s$. 
+Detection/non-detection data are modeled as binomial random variables:
+
+$$y_{t, s, j} \sim \text{Binomial}(z_{t, s, j} p_{t, s, j}, 50),$$
+
+for all $s$, $t$, and $j$. 
+
+### Route embeddings {-}
+
+```{r figs2, fig.cap='Extended computational diagram for the multi-species neural hierarchical dynamic occupancy model. Outer grey boxes indicate the different levels of the model that index quantities inside the boxes. Yellow nodes indicate occupancy parameters, and red nodes indicate detection parameters. Outputs include initial occupancy ($\\psi_1$), persistence ($\\phi$), colonization ($\\gamma$), and detection probabilities ($p$). The box labeled GRU is a gated recurrent unit that decodes temporal sequences of hidden layers from encoded route vectors.', out.width = "200px"}
+knitr::include_graphics(here('fig', 'figs2.pdf'))
+```
+
+Heterogeneity in occupancy dynamics was introduced by allowing species initial colonization, persistence, colonization, and detection probabilities to relate to latent spatiotemporal features (Fig. \@ref(fig:figs2)).
+For the multi-species model, all embeddings are 64 dimensional, all hidden layers are 32 dimensional unless stated otherwise. 
+
+Categorical inputs to the network included EPA level one ecoregion, mapped to categorical entity embeddings [@guo2016entity].
+As with the single-species models:
+
+$$h_{r[s]}^{(L_1)} = W^{(L_1)} x_{r[s]}^{(L_1)},$$
+
+where $h_{r[s]}^{(L_1)}$ is the embedding for a level one ecoregion $r$ containing route $s$, $W^{(L_1)}$ is a weight matrix, and $x_{r[s]}^{(L_1)}$ is a one-hot encoding for the level one ecoregion $r$ containing route $s$.
+Concatenating the ecoregion embedding with route level features $x_s$ for route $s$ provides the zeroth hidden layer of the network.
+
+$$h_s^{(0)} = \begin{bmatrix}
+           h_{r[s]}^{(L_1)} \\
+           x_s
+         \end{bmatrix}.$$
+
+This is then passed to a sequence of hidden layers:
+
+$$h_s^{(1)} = g(W^{(1)} h_s^{(0)}),$$
+$$h_s^{(2)} = g(W^{(2)} h_s^{(1)}),$$
+$$h_s^{(3)} = g(W^{(3)} h_s^{(2)}),$$
+
+where $g$ is the leaky ReLU activation function, so that $h_s^{(3)}$ is a vector valued nonlinear combination of route-level features. 
+
+This hidden layer is then mapped to parameter-specific hidden layers. 
+The initial occupancy probability hidden layer uses a fully connected layer: 
+
+$$h_s^{(\psi_1)} = g(W^{(\psi_1)} h_s^{(3)}).$$
+
+Colonization, persistence, and detection probability hidden layers were allowed to vary in space and time and modeled using a recurrent neural network. 
+Temporal variation was modeled by treating $h_s^{(3)}$ as a route-level encoding, that is decoded by a two-layer gated recurrent unit -- a particular type of sequence model often used in time series analysis and text modeling, similar to a long short term memory model [@chung2014empirical].
+The gated recurrent unit takes the vector $h_s^{(3)}$ as an input, and outputs a multivariate sequence of shape $T \times (32 \times 3)$, which is reshaped into a $T \times 32 \times 3$ dimensional array that has dimensions for years, hidden features, and model components (persistence, colonization, and detection).
+
+$$
+\begin{bmatrix}
+   h^{(\phi)}_{1:T} \\
+   h^{(\gamma)}_{1:T} \\
+   h^{(p)}_{1:T}
+ \end{bmatrix}_s = \text{GRU}(h_s^{(3)}),
+$$
+
+where the subscript $1:T$ indicates that values are generated for timesteps $t=1, ..., T$.
+These latent spatiotemporal route features are then combined with species-specific weights generated via deep multi-species embedding [@chen2016deep].
+
+### Hierarchical deep multi-species embedding {-}
+
+Species-specific weights were modeled as outputs of a neural network that ingests species-level traits (in this case, species identity, genus, family, and order).
+Taxonomic embeddings enable information to be shared among species within genera, families, and orders. 
+A vector valued embedding $v_j$ for species $j$ is generated by concatenating embeddings at each taxonomic level:
+
+$$h_j = W^{(\text{Species})} x_j,$$
+$$h_j^{(g)} = W^{(\text{Genus})} x_j^{(g)},$$
+$$h_j^{(f)} = W^{(\text{Family})} x_j^{(f)},$$
+$$h_j^{(o)} = W^{(\text{Order})} x_j^{(o)},$$
+
+$$v_j = \begin{bmatrix}
+           h_j \\
+           h_j^{(g)} \\
+           h_j^{(f)} \\
+           h_j^{(o)}
+         \end{bmatrix}.$$
+
+Here $h_j$ is the vector valued embedding for species $j$, $W^{(\text{Species})}$ is a weight matrix, $x_j$ is a one hot encoded vector, $h_j^{(g)}$ is the vector valued embedding for the genus containing species $j$, etc.
+The vector $v_j$ is mapped to parameter-specific hidden units via fully connected layers:
+
+$$h_j^{(\psi_1^*)} = g(W^{(\psi_1^*)} v_j),$$
+$$h_j^{(\phi^*)} = g(W^{(\phi^*)} v_j),$$
+$$h_j^{(\gamma^*)} = g(W^{(\gamma^*)} v_j),$$
+$$h_j^{(p^*)} = g(W^{(p^*)} v_j).$$
+
+These hidden layers are then mapped to species-specific weights via fully connected layers with identity activation functions:
+
+$$w_j^{(\psi_1)} = W^{(w_{\psi_1})} h_j^{(\psi_1^*)},$$
+$$w_j^{(\phi)} = W^{(w_{\phi})} h_j^{(\phi^*)},$$
+$$w_j^{(\gamma)} = W^{(w_{\gamma})} h_j^{(\gamma^*)},$$
+$$w_j^{(p)} = W^{(w_{p})} h_j^{(p^*)}.$$
+
+By modeling weights as outputs of a neural network with shared features, relationships among weights for occupancy and detection parameters can be learned. 
+By including features (embeddings) at multiple taxonomic levels, information among taxonomically similar species can be shared.
+
+### Combining route features and species-specific weights {-}
+
+A dot product combines latent spatiotemporal route features with species-specific weights:
+
+$$\text{logit}(\psi_{t=1, s, j}) = h^{(\psi_1^*)}_{s} \cdot w^{(\psi_1)}_j,$$
+$$\text{logit}(\phi_{t, s, j}) = h^{(\phi^*)}_{t, s} \cdot w^{(\phi)}_j,$$
+$$\text{logit}(\gamma_{t, s, j}) = h^{(\gamma^*)}_{t, s} \cdot w^{(\gamma)}_j,$$
+$$\text{logit}(p_{t, s, j}) = h^{(p^*)}_{t, s} \cdot w^{(p)}_j,$$
+
+where $x \cdot y$ is the dot product of $x$ and $y$: $x \cdot y = \sum_i x_i y_i$.
+
+## Implementation {-}
+
+Maximum *a posteriori* estimates of baseline model parameters were obtained with Stan [@carpenter2017stan; @rstan]. 
+Penalized maximum likelihood estimates of the neural hierarchical model were obtained with Pytorch [@paszke2017automatic], with L2 regularization penalties on the network weights, which is equivalent to maximum a posteriori estimation for the neural network with Gaussian priors for the weights [@blundell2015weight]. 
+The discrete latent occupancy states were marginalized using the forward algorithm, so that the optimization objective used the observed data likelihood (rather than the complete data likelihood).
+To avoid underflow, forward probabilities were computed on the log scale for the baseline model in Stan, and using forward probability scaling in Pytorch for the neural hierarchical models [@rabiner1989tutorial].
+All code required to reproduce the analysis is available on GitHub at [https://www.github.com/mbjoseph/neuralecology](https://www.github.com/mbjoseph/neuralecology). 
+
+

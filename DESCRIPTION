@@ -1,0 +1,52 @@
+Type: Compendium
+Package: neuralecology
+Title: Fit Neural Hierarchical Models of Ecological Populations
+Version: 0.0.1
+Authors@R: 
+    person(given = "Max",
+           family = "Joseph",
+           role = c("aut", "cre"),
+           email = "maxwell.b.joseph@colorado.edu",
+           comment = c(ORCID = "0000-0002-7745-9990"))
+Description: Neural hierarchical models for ecological
+    populations
+License: BSD3
+Depends: 
+    assertthat,
+    bbsBayes,
+    bookdown,
+    dplyr,
+    elevatr,
+    fasterize,
+    ggrepel,
+    here,
+    knitr,
+    lsa,
+    lubridate,
+    multidplyr,
+    parallel,
+    patchwork,
+    pbapply,
+    plotly,
+    pROC,
+    raster,
+    RColorBrewer,
+    rmapshaper,
+    rmarkdown,
+    rnaturalearth,
+    rstan,
+    RStoolbox,
+    Rtsne,
+    sf,
+    tidyverse,
+    tools,
+    viridis,
+    vroom,
+    yardstick
+Remotes: 
+    hadley/multidplyr,
+    mbjoseph/bbsBayes@noninteractive,
+    ropenscilabs/rnaturalearth,
+    thomasp85/patchwork
+Encoding: UTF-8
+LazyData: true
