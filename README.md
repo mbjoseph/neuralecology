@@ -49,12 +49,15 @@ R -e "devtools::install_deps(dependencies = TRUE)"
 
 This repo comes with toy models in Jupyter notebooks:
 
-- [A neural occupancy model](simple-occupancy.ipynb)
-- [A neural dynamic occupancy model](dynamic-occupancy.ipynb)
-- [A neural N-mixture model](n-mixture-model.ipynb)
-- [A deep Markov model for capture-recapture data](hidden-markov-model.ipynb)
+- [A neural occupancy model](binder/simple-occupancy.ipynb)
+- [A neural dynamic occupancy model](binder/dynamic-occupancy.ipynb)
+- [A neural N-mixture model](binder/n-mixture-model.ipynb)
+- [A deep Markov model for capture-recapture data](binder/hidden-markov-model.ipynb)
 
 ## Building the paper
+
+The workflow for building the paper is handled with GNU Make. 
+To build the paper (including running the models for the case study) takes ~ 5 hours with 6 CPU cores and a GPU. 
 
 ```
 make
