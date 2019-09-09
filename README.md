@@ -43,6 +43,8 @@ R -e "devtools::install_deps(dependencies = TRUE)"
 
 ## Running the toy models
 
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mbjoseph/neuralecology/master)
+
 This repo comes with toy models in Jupyter notebooks:
 
 - [A neural occupancy model](simple-occupancy.ipynb)
