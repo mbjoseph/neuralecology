@@ -1,16 +1,17 @@
 ---
-# title: ""
-title: "Neural hierarchical models of ecological populations"
+params:
+  preprint: true
+title: "`r ifelse(params$preprint, 'Neural hierarchical models of ecological populations', '')`"
 bibliography: library.bib
 output: 
   bookdown::pdf_document2:
     keep_tex: TRUE
     toc: FALSE
-    # uncomment below for submission (and change title to "")
+    # uncomment below for submitted version with line numbering, title page etc.
     # includes:
     #   before_body: title.sty
     #   in_header: doc-prefix.tex
-    # uncomment below for preprint (and include title in this Rmd file)
+    # uncomment below for preprint
     extra_dependencies:
       neurips_2019: ["preprint"]
     includes:
@@ -33,10 +34,9 @@ here::here()
 
 \begin{abstract}
 Neural networks are increasingly being used in science to infer hidden dynamics of natural systems from noisy observations, a task typically handled by hierarchical models in ecology. 
-This paper describes an emergent class of hierarchical models parameterized by neural networks --- neural hierarchical models --- and develops a case study with bird populations in the United States.
-The derivation of such models is outlined beginning with the relationship between linear regression and neural networks, and analogously between a hierarchical ecological model (a dynamic occupancy model), and its neural counterpart. 
-The resulting neural hierarchical model, trained on millions of detection/non-detection time series for hundreds of species, provides insights into colonization and extinction at a continental scale. 
-The model also demonstrates good quantitative predictive performance and reasonable qualitative results about range shifts and macroecological patterns of population persistence at range boundaries.
+This paper describes an emergent class of hierarchical models parameterized by neural networks: neural hierarchical models. 
+The derivation of such models is motivated by the relationship between regression and neural networks, and analogously between hierarchical models and their neural counterparts. 
+A case study is developed for a neural dynamic occupancy model of North American bird populations, trained on millions of detection/non-detection time series for hundreds of species, providing insights into colonization and extinction at a continental scale. 
 Flexible models are increasingly needed that scale to large data and represent ecological processes. 
 Neural hierarchical models satisfy this need, providing a bridge between deep learning and ecological modeling that combines the function representation power of neural networks with the inferential capacity of hierarchical models. 
 \end{abstract}
