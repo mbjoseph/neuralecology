@@ -186,10 +186,9 @@ dpi <- 150
 cd_plot %>%
   {
     ggsave(filename = 'fig/centroid-displacement.jpg', plot = ., 
-           width = 6, height = 7, dpi = dpi)
+           width = 5, height = 6.5, dpi = dpi)
     ggsave(filename = 'fig/centroid-displacement.pdf', plot = ., 
-           width = 6, height = 7)
-    
+           width = 5, height = 6.5)
   }
 
 
@@ -233,7 +232,7 @@ cent_distances <- route_pts %>%
 st_crs(cent_distances$center_point) <- epsg
 
 dist_decay_df <- cent_distances %>%
-  select(route_id, sp.bbs, z_mle, year, geometry, center_point, phi) %>%
+  select(route_id, sp.bbs, z_mle, year, geometry, center_point, phi, gamma) %>%
   partition(sp.bbs) %>%
   mutate(km_from_centroid = sf::st_distance(geometry, 
                                           center_point, 
@@ -247,45 +246,77 @@ dec_df <- dist_decay_df %>%
   left_join(bbs_species) %>%
   group_by(route_id, english) %>%
   summarize(km_from_centroid = mean(km_from_centroid), 
-            phi = mean(phi)) %>%
+            phi = mean(phi), 
+            gamma = mean(gamma)) %>%
   group_by(english) %>%
   # slope is decrease in phi per 1000 km
   summarize(m = list(lm(phi ~ km_from_centroid)), 
             phid_cor = m[[1]]$coef["km_from_centroid"], 
-            lo = confint(m[[1]])['km_from_centroid', '2.5 %'], 
-            hi = confint(m[[1]])['km_from_centroid', '97.5 %']) %>%
-  left_join(dist_decay_df %>%
+            m_gamma= list(lm(gamma ~ km_from_centroid)), 
+            gammad_cor = m_gamma[[1]]$coef["km_from_centroid"]) %>%
+  select(-m, -m_gamma) %>%
+  left_join(z_fs %>%
               ungroup %>%
               left_join(bbs_species) %>%
-              filter(z_mle == 1) %>%
-              count(english, sp.bbs)) %>%
+              group_by(sp.bbs, english) %>%
+              summarize(mean_fs_psi = mean(fs_psi))) %>%
   left_join(as_tibble(centroid_pts) %>%
               group_by(sp.bbs) %>%
               summarize(mean_bbs_cent_dist = mean(overall_bbs_centroid_dist))) %>%
-  mutate(english = reorder(english, phid_cor))
+  mutate(english = reorder(english, phid_cor), 
+         quadrant = case_when(
+           phid_cor > 0 & gammad_cor > 0 ~ "i", 
+           phid_cor > 0 & gammad_cor < 0 ~ "iv", 
+           phid_cor < 0 & gammad_cor < 0 ~ "iii", 
+           phid_cor < 0 & gammad_cor > 0 ~ "ii"
+         ), 
+         norm = sqrt(phid_cor^2 + gammad_cor^2), 
+         absprod = abs(phid_cor * gammad_cor))
+
 
 to_label <- dec_df %>%
-  top_n(1, phid_cor) %>%
-  bind_rows(top_n(dec_df, 1, -phid_cor))
+  group_by(quadrant) %>%
+  mutate(absprod_diff = abs(absprod - mean(absprod))) %>%
+  filter(absprod_diff == min(absprod_diff))
 
+to_label_long <- to_label %>%
+  ungroup %>%
+  select(english, ends_with('cor'), mean_fs_psi) %>%
+  gather(var, value, -english, -mean_fs_psi)
 
-pt_alpha <- .3
+pt_alpha <- .5
 pt_size <- .5
+
+p0 <- dec_df %>%
+  ggplot(aes(phid_cor, gammad_cor)) + 
+  geom_point(alpha = pt_alpha / 2, size = pt_size) + 
+  geom_hline(yintercept = 0, linetype = 'dashed', color = 'grey') + 
+  geom_vline(xintercept = 0, linetype = 'dashed', color = 'grey') + 
+  theme_minimal() + 
+  xlab("Persistence coefficient") + 
+  ylab("Colonization coefficient") + 
+  geom_point(data = to_label, size = pt_size * 2, alpha = min(c(1, pt_alpha*3))) + 
+  theme(panel.grid.minor = element_blank()) + 
+  geom_text_repel(aes(label = english), data = to_label, size = 2.5) + 
+  coord_flip()
+p0
+
+
 dist_cor_plot <- dec_df %>%
-  ggplot(aes(n, phid_cor)) + 
-  geom_hline(yintercept = 0, linetype = 'dashed') + 
+  select(english, phid_cor, gammad_cor, mean_fs_psi) %>%
+  gather(var, value, -english, -mean_fs_psi) %>%
+  mutate(Label = ifelse(var == 'phid_cor', "Persistence", "Colonization")) %>%
+  ggplot(aes(mean_fs_psi, value)) + 
+  geom_hline(yintercept = 0, linetype = 'dashed', color = 'grey') + 
   geom_point(alpha = pt_alpha, size = pt_size) + 
   theme_minimal() + 
-  xlab("Total occurrences over all years") + 
-  ylab(expression(paste(d["c"], " coefficient"))) + 
-  ggtitle("(c)") + 
+  xlab("Mean occupancy") + 
+  ylab("Coefficient") + 
   theme(panel.grid.minor = element_blank()) + 
-  geom_point(data = to_label, size = 1) + 
-  geom_text_repel(aes(label = english), data = to_label)
+  facet_grid(Label~., scales = 'free_y')
 dist_cor_plot
 
 dec_df %>%
-  select(-m) %>%
   write_csv('out/dec_df.csv')
 
 p2 <- dist_decay_df %>%
@@ -295,18 +326,21 @@ p2 <- dist_decay_df %>%
   filter(english %in% to_label$english) %>%
   group_by(route_id, english) %>%
   summarize(km_from_centroid = mean(km_from_centroid), 
-            phi = mean(phi),
-            phid_cor = unique(phid_cor)) %>% 
+            phi = mean(phi, na.rm = TRUE),
+            gamma = mean(gamma, na.rm = TRUE),
+            phid_cor = unique(phid_cor), 
+            gammad_cor = unique(gammad_cor)) %>% 
   mutate(english = factor(english, levels = levels(dec_df$english))) %>%
-  ggplot(aes(km_from_centroid, phi)) + 
+  gather(var, value, -route_id, -english, -km_from_centroid, -ends_with('cor')) %>%
+  mutate(Label = ifelse(var == "phi", "Persistence", "Colonization")) %>%
+  ggplot(aes(km_from_centroid, value)) + 
   geom_point(alpha = pt_alpha, size = pt_size) + 
-  facet_wrap(~reorder(english, -phid_cor), nrow = 2) + 
+  facet_grid(Label~reorder(english, -phid_cor), scales = 'free') + 
   xlab(expression(paste("Kilometers from range centroid (", d["c"], ")"))) + 
-  ylab(expression(paste("Persistence probability (", phi, ")"))) + 
+  ylab("Probability") + 
   theme_minimal() + 
   theme(panel.grid.minor = element_blank(), 
-        axis.text.x = element_text(angle = 35)) + 
-  ggtitle("(a)")
+        axis.text.x = element_text(angle = 35))
 p2
 
 p3 <- z_mles %>%
@@ -315,22 +349,26 @@ p3 <- z_mles %>%
   filter(english %in% to_label$english) %>%
   left_join(bbs_routes) %>%
   group_by(Latitude, Longitude, english) %>%
-  summarize(phi = mean(phi)) %>%
+  summarize(phi = mean(phi), 
+            gamma = mean(gamma)) %>%
   st_as_sf(coords = c("Longitude", "Latitude"), 
            crs = 4326, agr = "constant") %>%
   st_transform(epsg) %>%
   left_join(dec_df) %>%
   mutate(english = reorder(english, -phid_cor)) %>%
-  group_by(english) %>%
-  mutate(frac_p = phi / max(phi)) %>%
-  ggplot() + 
+  select(english, phi, gamma, geometry) %>%
+  gather(var, value, -english, -geometry) %>%
+  group_by(english, var) %>%
+  mutate(adj_value = c(scale(qlogis(value))), 
+         Label = ifelse(var == 'phi', "Persistence", "Colonization")) %>%
+  ggplot() +
   geom_sf(data = ecoregions, 
           fill = 'white',  
           size =.1, alpha = .9) +
   geom_sf(data = routes_sf %>%
             filter(route_id %in% routes_surveyed_most_years$route_id), 
           alpha = .1, size = .1) +
-  geom_sf(aes(color = phi), size = .1) +
+  geom_sf(aes(color = adj_value), size = .2) +
   geom_sf(data = centroid_pts %>%
                   left_join(bbs_species) %>%
                   filter(english %in% to_label$english) %>%
@@ -338,23 +376,29 @@ p3 <- z_mles %>%
                   group_by(english) %>%
                   summarize() %>%
                   st_cast("LINESTRING"), 
-          size = 1) +
-  scale_color_viridis_c(option = "C", 
-                        expression(paste(phi))) + 
+          size = .5) +
+  scale_color_viridis_c() +
   theme_minimal() + 
-  facet_wrap(~english, nrow = 2) + 
-  ggtitle("(b)")
+  theme(legend.position = 'none') +
+  facet_grid(Label~english) + 
+  theme(axis.text = element_blank())
 p3
 
 
-persist_dist_plot <- (p2 | p3) / dist_cor_plot + plot_layout(heights = c(1, .7))
+rel_width <- .45
+
+persist_dist_plot <- ((p0 + ggtitle("(a)")) | (dist_cor_plot + ggtitle("(b)"))) / (p3 + ggtitle("(c)")) / (p2 + ggtitle("(d)")) + plot_layout(heights = c(.5, 1, .6))
+# persist_dist_plot <- ((dist_cor_plot + ggtitle("(a)")) + (p3 + ggtitle("(c)")) + 
+#                         plot_layout(widths = c(rel_width, 1))) / 
+#   ((p0 + ggtitle("(b)")) + (p2 + ggtitle("(d)")) + plot_layout(widths = c(rel_width, 1))) + 
+#   plot_layout(heights = c(1, .8))
 persist_dist_plot
 
 persist_dist_plot %>%
   {
     ggsave(filename = 'fig/persist-dist-plot.jpg', plot = ., 
-           width = 5, height = 6, dpi = dpi)
+           width = 7, height = 9.5, dpi = dpi)
     ggsave(filename = 'fig/persist-dist-plot.pdf', plot = ., 
-           width = 5, height = 6)
+           width = 7, height = 9.5)
   }
 

@@ -140,9 +140,7 @@ make_species_plot <- function(sp1, sp2, legend = TRUE) {
     ylab(substitute(paste(sp2_name), 
                     list(sp2_name = sp2_name))) + 
     scale_color_brewer(palette = 'Paired', '') + 
-    guides(colour = guide_legend(override.aes = list(alpha = 1, size = 1))) + 
-    ylim(0, 1) + 
-    xlim(0, 1)
+    guides(colour = guide_legend(override.aes = list(alpha = 1, size = 1)))
   if (!legend) {
     p <- p + theme(legend.position = 'none')
   }
@@ -165,15 +163,15 @@ make_pair_plot <- function(ref_sp, legend = TRUE, title = "") {
   p_near <-  make_species_plot(sp1 = nearest_lower, sp2 = focal_lower, 
                                legend = FALSE) +
     ggtitle(title) + 
-    annotate(geom = "text", x = 0, y = 1, hjust = 0, vjust = 1,
-             label = paste("Similarity:", round(cosine_df$similarity, 3)))
+    annotate(geom = "text", x = -Inf, y = Inf, hjust = 0, vjust = 1,
+             label = paste("Similarity:", round(cosine_df$similarity, 2)))
   
   p_far <- make_species_plot(sp1 = farthest_lower, sp2 = focal_lower, 
                              legend = legend) + 
     theme(axis.text.y = element_blank()) + 
     ylab("") + 
-    annotate(geom = "text", x = 1, y = 1, hjust = 1, vjust = 1,
-             label = paste("Similarity:", round(cosine_df$far_similarity, 3)))
+    annotate(geom = "text", x = Inf, y = Inf, hjust = 1, vjust = 1,
+             label = paste("Similarity:", round(cosine_df$far_similarity, 2)))
   
   p <- p_near + p_far
   p
@@ -181,7 +179,7 @@ make_pair_plot <- function(ref_sp, legend = TRUE, title = "") {
 
 p <- make_pair_plot("Mourning Dove", legend = FALSE, title = "(a)") / 
   make_pair_plot("Eurasian Collared-Dove", title = "(b)") / 
-  make_pair_plot("Wilson's Warbler", legend = FALSE, title = "(c)")
+  make_pair_plot("Bald Eagle", legend = FALSE, title = "(c)")
 p
 
 

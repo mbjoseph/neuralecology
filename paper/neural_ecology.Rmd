@@ -24,7 +24,8 @@ csl: ecology-letters.csl
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-knitr::opts_chunk$set(fig.align='center') 
+knitr::opts_chunk$set(fig.align='center')
+if (!params$preprint) knitr::opts_chunk$set(fig.pos='H')
 library(knitr)
 library(tidyverse)
 library(here)
@@ -35,7 +36,7 @@ here::here()
 \begin{abstract}
 Neural networks are increasingly being used in science to infer hidden dynamics of natural systems from noisy observations, a task typically handled by hierarchical models in ecology. 
 This paper describes an emergent class of hierarchical models parameterized by neural networks: neural hierarchical models. 
-The derivation of such models is motivated by the relationship between regression and neural networks, and analogously between hierarchical models and their neural counterparts. 
+The derivation of such models analogizes the relationship between regression and neural networks. 
 A case study is developed for a neural dynamic occupancy model of North American bird populations, trained on millions of detection/non-detection time series for hundreds of species, providing insights into colonization and extinction at a continental scale. 
 Flexible models are increasingly needed that scale to large data and represent ecological processes. 
 Neural hierarchical models satisfy this need, providing a bridge between deep learning and ecological modeling that combines the function representation power of neural networks with the inferential capacity of hierarchical models. 
@@ -44,7 +45,7 @@ Neural hierarchical models satisfy this need, providing a bridge between deep le
 # Introduction {-}
 
 Deep neural networks have proved useful in myriad tasks due their ability to represent complex functions over structured domains [@lecun2015deep]. 
-While ecologists are beginning to use such approaches, e.g., to identify animals in camera trap images [@norouzzadeh2018automatically], there has been relatively little integration of deep neural networks in ecological models of population dynamics.
+While ecologists are beginning to use such approaches, e.g., to identify animals in images [@norouzzadeh2018automatically], there has been relatively little integration of deep neural networks in ecological models of population dynamics.
 
 Ecological dynamics that regulate populations are difficult to observe, and inference often proceeds by modeling the relationship between imperfect data and latent quantities or processes of interest with hierarchical models [@wikle2003hierarchical]. 
 For example, occupancy models estimate the presence or absence of a species using imperfect detection data [@mackenzie2002estimating], and "dynamic" occupancy models estimate extinction and colonization dynamics [@mackenzie2003estimating].
@@ -76,18 +77,18 @@ Linear regression is a special case, where $x$ is mapped to a predicted value $y
   
   $$y = w^T x,$$
 
-where $w$ is a parameter vector (Fig. \@ref(fig:figure2)a). 
+where $w$ is a parameter vector (Fig.  \@ref(`r ifelse(params$preprint, "fig:figure2", "fig:endfig1")`)a). 
 Predicted values are linear combinations of the inputs $x$ due to the product $w^T x$, which restricts the complexity of the mapping from $x$ to $y$. 
 
 Instead of modeling outputs as linear functions of $x$, a model can be developed that is a linear function of a nonlinear transformation of $x$.
 A nonlinear transformation can be specified via polynomial terms, splines, or another basis expansion [@hefley2017basis], but neural networks parameterize the transformation via a set of sequential hidden layers [@goodfellow2016deep]. 
 
 In a neural network with one hidden layer, the first hidden layer maps the length $D$ input $x$ to a length $D^{(1)}$ vector of "activations" $a^{(1)} = W^{(1)} x$, where $W^{(1)}$ is a $D^{(1)} \times D$ parameter matrix.
-The activations are passed to a differentiable nonlinear activation function $g$ to obtain the "hidden units" of the first layer $h^{(1)} = g(a^{(1)})$ (Fig. \@ref(fig:figure2)b).
+The activations are passed to a differentiable nonlinear activation function $g$ to obtain the "hidden units" of the first layer $h^{(1)} = g(a^{(1)})$ (Fig. \@ref(`r ifelse(params$preprint, "fig:figure2", "fig:endfig1")`)b).
 
 The final layer of a neural network maps the last hidden layer to an output. 
 For a neural network with one hidden layer, if the output variable $y$ is a $K$ dimensional vector,  the output unit activations are given by $a^{(2)} = W^{(2)} h^{(1)}$, where $W^{(2)}$ is a $K \times D^{(1)}$ parameter matrix.
-The output activation can be written as the composition of functions that transform the inputs $x$:
+The output activation can be written as a composition of functions that transform the inputs $x$:
 
 $$a^{(2)} = W^{(2)} \Big( g(W^{(1)} x) \Big).$$
 
@@ -102,7 +103,7 @@ In practice, these partial derivatives are often computed via automatic differen
 
 Neural networks are popular both because of their practical successes in a wide variety of applications, and because they possess some desirable theoretical properties. 
 A neural network with suitable activation functions and a single hidden layer containing a finite number of neurons can approximate nearly any continuous function on a compact domain [@cybenko1989approximation; @hornik1991approximation].
-"Deep" neural networks with many sequential hidden layers also possess desirable theoretical properties for function representation [@lu2017expressive].
+"Deep" neural networks with many sequential hidden layers also act as function approximators [@lu2017expressive].
 The field of deep learning, which applies such networks, provides a variety of network architectures to account for temporal structure [@hochreiter1997long], spatial structure on regular grids [@long2015fully], or graphs [@niepert2016learning], sets of unordered irregular points [@li2018pointcnn], and spatiotemporal data on grids or graphs [@xingjian2015convolutional; @jain2016structural].
 
 The potential for deep learning has been recognized in Earth science [@reichstein2019deep], the natural sciences [@ching2018opportunities; @gazestani2019genotype; @roscher2019explainable], physical sciences [@carleo2019machine],  chemical sciences [@butler2018machine], and ecology [@christin2018applications; @Desjardins-Proulx161125].
@@ -123,8 +124,30 @@ In a non-Bayesian setting, parameters are treated as unknowns and estimated from
 
 # Neural hierarchical models {-}
 
-```{r figure2, fig.cap="Computation graphs for (a) linear regression, (b) a neural network with one hidden layer, (c) a dynamic occupancy model, (d) a single species neural dynamic occupancy model, and (e) a deep multi-species neural dynamic occupancy model with species embeddings. Yellow and red indicate quantities specific to process and observation components respectively. Inputs are represented by $x$, and predicted values in panels (a) and (b) by $y$. Hidden layers are represented by $h$, with layer-specific superscripts. Outputs include initial occupancy ($\\psi_1$), persistence ($\\phi$), colonization ($\\gamma$), and detection ($p$) probabilities. Latent species embedding vectors are represented by $v$, and GRU indicates a gated recurrent unit.", fig.show='hold', fig.width = 2}
-knitr::include_graphics(here('fig', 'fig2.pdf'))
+```{r define_figs}
+fig_src_files <- c(here('fig', 'fig2.pdf'), 
+                   here('fig', 'roc-test.jpg'), 
+                   here('fig', 'centroid-displacement.jpg'),
+                   here('fig', 'persist-dist-plot.jpg'), 
+                   here('fig', 'route_tsne.jpg'), 
+                   here('fig', 'occupancy_scatter.jpg'))
+
+fig_caps <- c(
+  "Computation graphs for (a) linear regression, (b) a neural network with one hidden layer, (c) a dynamic occupancy model, (d) a single species neural dynamic occupancy model, and (e) a deep multi-species neural dynamic occupancy model with species embeddings. Yellow and red indicate quantities specific to process and observation components respectively. Inputs are represented by $x$, and predicted values in panels (a) and (b) by $y$. Hidden layers are represented by $h$, with layer-specific superscripts. Outputs include initial occupancy ($\\psi_1$), persistence ($\\phi$), colonization ($\\gamma$), and detection ($p$) probabilities. Latent species embedding vectors are represented by $v$, and GRU indicates a gated recurrent unit.", 
+  '(a) Receiver operator characteristic curves of binarized detection/non-detection data for each survey route in the test set, colored by the area under the curve (AUC). Here, the x-axis is the complement of specificity: the ratio of the number of false positives (incorrectly predicted detections, with no observed detections) to the sum of false positives and true negatives (correctly predicted non-detections with observed non-detections). The y-axis is true positive rate: the ratio of the number of true positives (correctly predicted detections with observed detections) to the sum of true positives and false negatives (incorrectly predicted non-detections with observed detections). The overall distribution of AUC values is shown in (b), and (c) shows the locations of test set routes colored by AUC values, where black dots represent routes that were used to train the final model.',
+  '(a) Centroid displacement of bird species (x-axis) from 1997 to 2018 in kilometers vs. finite-sample population growth rate (y-axis), where a growth rate of 1 is stable, values less than one are decreasing, and values greater than one are increasing. Species with the highest population growth rates are highlighted. Panel (b) shows the locations of breeding bird survey range centroids in 1997 and 2018 for each highlighted species, along with grey points that represent survey routes where the species was estimated to be present in at least one year.',
+  '(a) Scatter plot relating species-specific distance decay coefficients for colonization and persistence, with focal species from each quadrant highlighted. (b) Mean finite-sample occupancy (x-axis) vs. coefficients relating distance from range centroid and the probability of colonization (y-axis, top row), and persistence (y-axis, bottom row). (c) Maps of colonization and persistence probabilities at each route where focal species were likely absent (in grey) and present (in color, normalized to increase the visibility of gradients). Centroids for each year are shown in solid black. (d) Colonization and persistence probabilities (y-axis) as a function of distance from range centroid, averaged among years.',
+  'A two dimensional plot of North American Breeding Bird Survey route embeddings, computed using t-distributed stochastic neighbor embedding (t-SNE) on the latent vectors for initial occupancy, persistence, colonization, and detection probabilities for each route. Color indicates (a) EPA level 1 ecoregion and (b) z-standardized continuous route-level features. PC1 refers to the first principal component of WorldClim climate data. Notice clustering both by ecoregion, and by continuous route-level features.',
+  'Relationships among species estimated occupancy probabilities through time, by location for species pairs that are nearest neighbors in weight cosine distance (left column), and most cosine dissimilar (right column). Color indicates EPA level 1 ecoregions. Cosine similarity values for species pairs are printed in the upper corners of each panel. Each route is a line segment that connects estimates of occupancy probabilities for each year from 1997 to 2018.'
+)
+```
+
+
+
+
+
+```{r figure2, fig.cap=fig_caps[1], fig.show='hold', fig.width = 2}
+if (params$preprint) knitr::include_graphics(fig_src_files[1])
 ```
 
 Neural hierarchical models are hierarchical models in which the observation, process, or parameter model is parameterized by a neural network. 
@@ -134,7 +157,7 @@ State-space neural networks that use recurrent architectures provide another exa
 This class of models inherits the flexibility and scalability of neural networks, along with the inferential power of hierarchical models, but applications in ecology and environmental science are only just beginning to emerge [@wikle2019comparison].
 
 Construction of such models from existing hierarchical models is straightforward.
-One can propose neural variants of occupancy models [@mackenzie2002estimating], dynamic occupancy models [@mackenzie2003estimating; @royle2007bayesian], N-mixture models [@royle2004n], mark-recapture models [@jolly1965explicit; @calvert2009hierarchical], and other hidden Markov models [@patterson2009classifying; @langrock2012flexible]. 
+For example, one can propose neural variants of occupancy models [@mackenzie2002estimating], dynamic occupancy models [@mackenzie2003estimating; @royle2007bayesian], N-mixture models [@royle2004n], mark-recapture models [@jolly1965explicit; @calvert2009hierarchical], and other hidden Markov models [@patterson2009classifying; @langrock2012flexible]. 
 Output activation functions can be determined from inverse link functions, e.g., sigmoid (inverse logit) activations for probabilities, and loss functions can be constructed from the negative log likelihoods (see Appendix S1 in Supporting Information for example model specifications). 
 To provide a concrete use case, a neural dynamic occupancy model is developed for extinction and colonization dynamics of North American bird communities.
 
@@ -152,8 +175,8 @@ Thousands of routes are surveyed once a year during the breeding season.
 Surveys consist of volunteer observers that stop 50 times at points 800 meters apart on a transect, and record all birds detected within 400 meters for three minutes. 
 Species can be present, but not detected, and may go locally extinct or colonize new routes from year to year, motivating the development of dynamic occupancy models which use imperfect detection data to estimate latent presence or absence states [@mackenzie2003estimating; @royle2007bayesian]. 
 
-This case study uses BBS data from 1997-2018 excluding unidentified or hybrid species, restricting the analysis to surveys which meet the official BBS criteria [@bbs2018]. 
-The resulting data consists of `r printnum(summary_df$n_species)` species sampled at `r printnum(summary_df$n_routes)` routes, for a total of `r printnum(summary_df$n_surveys)` surveys (not every route is surveyed in each year), `r printnum(summary_df$n_stops)` stops, and `r printnum(summary_df$n_detection_records)` detection/non-detection observations.
+This case study uses BBS data from 1997-2018 excluding unidentified or hybrid species, restricting the analysis to surveys meeting the official BBS criteria [@bbs2018]. 
+The resulting data consists of `r printnum(summary_df$n_species)` species sampled at `r printnum(summary_df$n_routes)` routes, for a total of `r printnum(summary_df$n_surveys)` surveys (not every route is surveyed in each year), `r printnum(summary_df$n_species * summary_df$n_routes)` observation history time series, and `r printnum(summary_df$n_detection_records)` detection/non-detection observations.
 
 ### Process model {-}
 
@@ -179,17 +202,16 @@ The joint likelihood corresponds to the product of these terms for all years, ro
 
 ### Parameter models {-}
 
-Heterogeneity in parameter values among routes, years, species, and surveys was represented differently in three models of increasing complexity: a baseline model that maps input features to parameters with a linear combination on the logit scale [@mackenzie2003estimating], a single-species neural hierarchical model that maps inputs to parameters using a neural network with one hidden layer, and a multi-species deep neural hierarchical model (Fig. \@ref(fig:figure2)c-e). 
+Heterogeneity in parameter values among routes, years, species, and surveys was represented differently in three models of increasing complexity: a baseline model that maps input features to parameters with a linear combination on the logit scale [@mackenzie2003estimating], a single-species neural hierarchical model that maps inputs to parameters using a neural network with one hidden layer, and a multi-species deep neural hierarchical model (Fig. \@ref(`r ifelse(params$preprint, "fig:figure2", "fig:endfig1")`)c-e). 
 For all models, input features included Environmental Protection Agency (EPA) level one ecoregions, the first eight principal components of the standard 19 WorldClim Bioclimatic variables averaged across the years 1970-2000, computed for the coterminous United States [@fick2017worldclim], BBS route spatial coordinates, distance from the coast, elevation, and road density within 10 km from the Global Roads Inventory Project [@meijer2018global]. 
 The model of detection probabilities additionally included survey-level features including temperature, duration, wind, and air conditions. 
 
 The neural hierarchical model architectures were motivated by joint species distribution models in which species load onto a shared set of latent factors [@thorson2015spatial; @warton2015so; @ovaskainen2016uncovering; @thorson2016joint; @tikhonov2017using], and by recent work on deep neural basis expansions [@mcdermott2019deep; @wikle2019comparison]. 
-Analogously, the neural networks combined inputs into a latent vector for each route via a series of hidden layers, which is then passed as inputs to hidden layers associated with initial occupancy, colonization, extinction, and detection probabilities. 
-These hidden layers act as latent factors, mapped via a loading matrix to process and observation parameters. 
+Analogously, the neural networks combined inputs into a latent vector for each route via a series of hidden layers, which act as latent factors that are mapped to process and observation parameters (Fig. \@ref(`r ifelse(params$preprint, "fig:figure2", "fig:endfig1")`)d). 
 
 The architecture of the multi-species neural dynamic occupancy model additionally built upon previous work on deep multi-species embedding [@chen2016deep] and encoder-decoder architectures used in sequence to sequence translation [@sutskever2014sequence].
 Route-level features were encoded via a series of hidden layers, then passed to a recurrent neural network that decodes a multivariate time series of latent vectors associated with colonization, persistence, and detection [@chung2014empirical]. 
-An entity embedding was constructed for each species that combined information among species within genera, families, and orders, and a neural network parameterized species-specific weights for each latent spatiotemporally referenced route feature. 
+An entity embedding was constructed for each species that combined information among species within genera, families, and orders, and a neural network parameterized species-specific weights for each latent spatiotemporally referenced route feature (Fig. \@ref(`r ifelse(params$preprint, "fig:figure2", "fig:endfig1")`)e). 
 The dot product of species-specific weights and latent spatiotemporal route features generated values for colonization, persistence, and detection probabilities. 
 For additional details, see Appendix S2 in Supporting Information.
 
@@ -209,15 +231,15 @@ For the AUC analysis, cases were taken to be detections $y_{t, s, j} > 0$ and co
 Predicted test set observation probabilities were constructed via marginalization over latent states so that $\text{Pr}(y_{t, s, j} = 0 \mid p_{t, s, j}, \psi_{t, s, j}) = 1 - \psi_{t, s, j} + \psi_{t, s, j}(1 - p_{t, s, j})^{50}$. 
 Predicted occupancy probabilities for withheld test set routes were computed recursively following @mackenzie2003estimating.
 
-```{r roc-test, fig.cap='(a) Receiver operator characteristic curves of binarized detection/non-detection data for each survey route in the test set, colored by the area under the curve (AUC). Here, the x-axis is the complement of specificity: the ratio of the number of false positives (incorrectly predicted detections, with no observed detections) to the sum of false positives and true negatives (correctly predicted non-detections with observed non-detections). The y-axis is true positive rate: the ratio of the number of true positives (correctly predicted detections with observed detections) to the sum of true positives and false negatives (incorrectly predicted non-detections with observed detections). The overall distribution of AUC values is shown in (b), and (c) shows the locations of test set routes colored by AUC values, where black dots represent routes that were used to train the final model.'}
-knitr::include_graphics(here('fig', 'roc-test.jpg'))
+```{r roc-test, fig.cap=fig_caps[2]}
+if (params$preprint) knitr::include_graphics(fig_src_files[2])
 ```
 
 
 Predictions from final model were qualitatively evaluated to see whether they are plausible, given previous work.
 The most likely occupancy states were computed at all BBS routes for each year and species [@viterbi1967error], which were then used to compute finite sample population growth rates for each species [@royle2007bayesian].
 To quantify range shifts, annual spatial centroids were computed for each species among routes that were predicted to be occupied (hereafter referred to as "BBS range centroids" to differentiate from the actual centroid of a species' entire range). 
-To evaluate whether the results were consistent with previous findings that population persistence probabilities are highest in the center of a species' range, correspondence between BBS range centroids and persistence probabilities were also assessed using linear regression [@mehlman1997change; @royle2007bayesian].
+To evaluate whether the results were consistent with previous findings about colonization and extinction gradients over species ranges, correspondence between BBS range centroids and both colonization and persistence probabilities were assessed using linear regression [@mehlman1997change; @royle2007bayesian].
 These qualitative analyses only used BBS routes surveyed in every year, and species that occurred in all years and at 100 or more routes to avoid bias associated with recently added Canadian routes, and variance associated with rare species [@sauer2017expanding].
 
 Finally, to facilitate interpretation of the final model, additional analyses were performed that provide insight into how the model represented BBS routes and bird species. 
@@ -250,11 +272,11 @@ notable_phi_sp <- dec_df %>%
 
 The multi-species neural hierarchical model performed best on the withheld validation routes, with a difference in mean validation set negative log likelihood of `r round(valid_nll$ss_nll - valid_nll$nn_nll, 3)` relative to the baseline model and `r round(valid_nll$ss_nll - valid_nll$sn_nll, 3)` relative to the single-species neural hierarchical model.
 For the final model, 95% prediction interval coverage for observed counts at withheld test set routes was `r round(mean(coverage_df$coverage), 3) * 100`%, with a standard deviation of `r round(sd(coverage_df$coverage), 3) * 100`%, a minimum of `r round(min(coverage_df$coverage), 3) * 100`%, and a maximum of `r round(max(coverage_df$coverage), 3) * 100`%. 
-The model also predicted whether species would be detected on test set routes fairly well, with a mean test set AUC of `r round(mean(auc_df$.estimate), 3)`, an among-route standard deviation of `r round(sd(auc_df$.estimate), 3)`, a minimum of `r round(min(auc_df$.estimate), 3)`, and a maximum of `r round(max(auc_df$.estimate), 3)` (Fig. \@ref(fig:roc-test)).
+The model also predicted whether species would be detected on test set routes fairly well, with a mean test set AUC of `r round(mean(auc_df$.estimate), 3)`, an among-route standard deviation of `r round(sd(auc_df$.estimate), 3)`, a minimum of `r round(min(auc_df$.estimate), 3)`, and a maximum of `r round(max(auc_df$.estimate), 3)` (Fig. \@ref(`r ifelse(params$preprint, "fig:roc-test", "fig:endfig2")`)).
 
 
-```{r centroid-displacement, fig.cap='(a) Scatter plot relating the centroid displacement of bird species (x-axis) from 1997 to 2018 in kilometers to finite-sample growth rate (y-axis), where a growth rate of 1 is stable, values less than one are decreasing, and values greater than one are increasing. Species with the highest population growth rates are highlighted. Panel (b) shows the locations of breeding bird survey range centroids in 1997 and 2018 for each highlighted species, along with blue points that represent survey routes where the species was estimated to be present in at least one year.', out.width = "400px"}
-knitr::include_graphics(here('fig', 'centroid-displacement.jpg'))
+```{r centroid-displacement, fig.cap=fig_caps[3], out.width = "400px"}
+if (params$preprint) knitr::include_graphics(fig_src_files[3])
 ```
 
 ```{r, echo = FALSE}
@@ -266,36 +288,38 @@ highest_growth_rates <- paste0(
 ```
 
 Qualitative results related to range shifts and population growth rates were plausible given previous work.
-The model identified the invasive Eurasian Collared-Dove (*Streptopelia decaocto*) as having the greatest range centroid displacement from 1997 to 2018 and the highest finite sample population growth rate (Fig. \@ref(fig:centroid-displacement)), consistent with its invasion of North America from Florida following its introduction in the 1980's [@bled2011hierarchical].
+The model identified the invasive Eurasian Collared-Dove (*Streptopelia decaocto*) as having the greatest range centroid displacement from 1997 to 2018 and the highest finite sample population growth rate (Fig. \@ref(`r ifelse(params$preprint, "fig:centroid-displacement", "fig:endfig3")`)), consistent with its invasion of North America from Florida following its introduction in the 1980's [@bled2011hierarchical].
 Increasing trends also have previously been reported for the species with the next three highest population growth rates: 
 `r highest_growth_rates[1]`, `r highest_growth_rates[2]`, and `r highest_growth_rates[3]` [@sauer2013north]. 
 
-```{r persist-dist, fig.cap='(a) Persistence probabilities (y-axis) as a function of distance from range centroid, averaged across years for the species with the largest positive relationship between distance from range centroid and persistence probability (top row), and largest negative relationship (bottom row). Each point represents a North American Breeding Bird Survey route. (b) Maps of persistence probabilities at each breeding bird survey route where these species were estimated to be present (in color), with route locations where the species was never estimated to be present in grey. Centroids for each year are shown in solid black. (c) Scatter plot relating the total number of occurrences across all routes and years (x-axis) to the slope of the relationship between distance from range centroid and persistence probability ($d_c$, on the y-axis). Each point represents a species. Points below the dashed line correspond to species with lower persistence at routes distant from their range centroids.', out.width = "400px"}
-knitr::include_graphics(here('fig', 'persist-dist-plot.jpg'))
+```{r persist-dist, fig.cap=fig_caps[4], out.width = "400px"}
+if (params$preprint) knitr::include_graphics(fig_src_files[4])
 ```
 
 The majority (`r round(mean(dec_df$phid_cor < 0), 2) * 100`%) of common species were less likely to persist at routes that were distant from their estimated BBS range centroids. 
-Examples from the species with the greatest positive and negative relationships between centroid distance and persistence are shown in Fig. \@ref(fig:persist-dist)a-b.
-Species that occurred in many routes and in many years tended to show consistently negative relationships between persistence and distance from range centroids (Fig. \@ref(fig:persist-dist)c). 
+Similarly, `r round(mean(dec_df$gammad_cor < 0), 2) * 100`% of common species were less likely to colonize routes distant from their BBS range centroids. 
+There were examples of species with all possible combinations of postive and negative distance coefficients for persistence and colonization (Fig. \@ref(`r ifelse(params$preprint, "fig:persist-dist", "fig:endfig4")`)a).
+Negative relationships were most apparent for common species that occupied a large fraction of BBS routes (Fig. \@ref(`r ifelse(params$preprint, "fig:persist-dist", "fig:endfig4")`)b). 
+Results for representative species are displayed in Fig. \@ref(`r ifelse(params$preprint, "fig:persist-dist", "fig:endfig4")`)c-d.
 
-```{r route-tsne, fig.cap='A two dimensional plot of North American Breeding Bird Survey route embeddings, computed using t-distributed stochastic neighbor embedding (t-SNE) on the latent vectors for initial occupancy, persistence, colonization, and detection probabilities for each route. Color indicates (a) EPA level 1 ecoregion and (b) z-standardized continuous route-level features. PC1 refers to the first principal component of WorldClim climate data. Notice clustering both by ecoregion, and by continuous route-level features.', out.width = "400px"}
-knitr::include_graphics(here('fig', 'route_tsne.jpg'))
+```{r route-tsne, fig.cap=fig_caps[5], out.width = "400px"}
+if (params$preprint) knitr::include_graphics(fig_src_files[5])
 ```
 
 Route vectors combined information from the categorical and continuous route-level features.
-Unsurprisingly (because ecoregion was an input feature), routes in the same ecoregions clustered together (Fig. \@ref(fig:route-tsne)a).
-Route embeddings also capture learned relationships among ecoregions. 
-For example, Marine West Coast Forest ecoregion routes were similar to Northwestern Forested Mountains routes, and most different from Eastern Temperate Forests routes (Fig. \@ref(fig:route-tsne)a). 
-Variation within clusters also related to continuous route-level features (Fig. \@ref(fig:route-tsne)b). 
+Unsurprisingly (because ecoregion was an input feature), routes in the same ecoregions clustered together (Fig. \@ref(`r ifelse(params$preprint, "fig:route-tsne", "fig:endfig5")`)a).
+Route embeddings also revealed relationships among ecoregions. 
+For example, Marine West Coast Forest ecoregion routes were similar to Northwestern Forested Mountains routes, and most different from Eastern Temperate Forests routes (Fig. \@ref(`r ifelse(params$preprint, "fig:route-tsne", "fig:endfig5")`)a). 
+Variation within clusters also related to continuous route-level features (Fig. \@ref(`r ifelse(params$preprint, "fig:route-tsne", "fig:endfig5")`)b). 
 
-```{r occupancy-scatter, fig.cap='Relationships among species estimated occupancy probabilities through time, by location for species pairs that are nearest neighbors in weight cosine distance (left column), and most cosine dissimilar (right column). Color indicates EPA level 1 ecoregions. Cosine similarity values for species pairs are printed in the upper corners of each panel. Each route is a line segment that connects estimates of occupancy probabilities for each year from 1997 to 2018.', out.width = "400px"}
-knitr::include_graphics(here('fig', 'occupancy_scatter.jpg'))
+```{r occupancy-scatter, fig.cap=fig_caps[6], out.width = "400px"}
+if (params$preprint) knitr::include_graphics(fig_src_files[6])
 ```
 
 The model predicted non-linear dependence among species that is interpretable in terms of the cosine similarity among species-specific weight vectors.
-For example, weights for Mourning Dove (*Zenaida macroura*) were closest to those of `r cosine_sim$nearest_species[cosine_sim$english == 'Mourning Dove']` (*`r bbs_species$sciname[bbs_species$english == cosine_sim$nearest_species[cosine_sim$english == 'Mourning Dove']]`*), and most different from `r cosine_sim$farthest_species[cosine_sim$english == 'Mourning Dove']` (*`r bbs_species$sciname[bbs_species$english == cosine_sim$farthest_species[cosine_sim$english == 'Mourning Dove']]`*) (Fig. \@ref(fig:occupancy-scatter)a).
+For example, weights for Mourning Dove (*Zenaida macroura*) were closest to those of `r cosine_sim$nearest_species[cosine_sim$english == 'Mourning Dove']` (*`r bbs_species$sciname[bbs_species$english == cosine_sim$nearest_species[cosine_sim$english == 'Mourning Dove']]`*), and most different from `r cosine_sim$farthest_species[cosine_sim$english == 'Mourning Dove']` (*`r bbs_species$sciname[bbs_species$english == cosine_sim$farthest_species[cosine_sim$english == 'Mourning Dove']]`*) (Fig. \@ref(`r ifelse(params$preprint, "fig:occupancy-scatter", "fig:endfig6")`)a).
 On BBS routes where Mourning Doves are likely to occur, `r cosine_sim$nearest_species[cosine_sim$english == 'Mourning Dove']` are also likely to occur, and `r cosine_sim$farthest_species[cosine_sim$english == 'Mourning Dove']` are unlikely to occur.
-Species pairs of the most similar and most dissimilar loadings are also provided for Eurasian Collared-Dove and Wilson's Warbler (Fig. \@ref(fig:occupancy-scatter)b-c).
+Species pairs of the most similar and most dissimilar loadings are also provided for Eurasian Collared-Dove and Bald Eagle (Fig. \@ref(`r ifelse(params$preprint, "fig:occupancy-scatter", "fig:endfig6")`)b-c).
 
 # Discussion {-}
 
@@ -314,10 +338,10 @@ highest_slope_species_sciname <- bbs_species %>%
 
 The analysis of breeding bird survey data indicate that neural hierarchical models can outperform simpler models. 
 Notably, the final model was performant both quantitatively and qualitatively, detecting population increases and range expansions that are consistent with prior work.
-The case study extends previous analyses of persistence probabilities at range edges [@royle2007bayesian], indicating that common species tended to be more persistent at routes close to their BBS range centroid. 
-The strongest exception to this trend might be a consequence of the centroid providing a poor measure of central tendency of the BBS range.
-In particular, for the `r highest_slope_species_english` (*`r highest_slope_species_sciname`*), which had the strongest positive relationship between persistence probability and distance from BBS range centroid, the BBS range is irregularly shaped such that the centroid lies at the range boundary, and the northern range of the species is not as well represented in BBS routes. 
-This highlights some challenges posed by irregular range geometry and incomplete sampling of species ranges for macroecological studies that have been pointed out for similar questions about species abundance at observed range edges [@sagarin2002abundant; @dallas2017species; @knouft2018appropriate].
+The case study extends previous analyses of persistence probabilities at range edges [@royle2007bayesian], indicating that common species tend to have higher persistence and colonization probabilities at routes close to their BBS range centroid. 
+Yet, interpreting this result is complicated by irregular range geometry, which can lead to centroids that lie outside of a species range, and incomplete sampling of species ranges, which can result in a mismatch between actual and estimated ranges [@sagarin2002abundant; @fortin2005species; @dallas2017species; @knouft2018appropriate].
+Additional complexity is apparent in Fig. \@ref(`r ifelse(params$preprint, "fig:persist-dist", "fig:endfig4")`)c, which indicates that gradients in colonization and persistence may not be isotropic (the same in every direction).
+With those caveats, the results are broadly consistent with a theoretical expectation that range boundaries can arise from gradients in local extinction and colonization rates [@holt2000alternative].
 
 The case study used a gated recurrent neural network architecture to capitalize on temporal structure [@chung2014empirical], and architectures designed for other data structures present other opportunities for ecological applications. 
 For example, neural hierarchical models could be used to couple a convolutional neural network observation model for camera trap images [@norouzzadeh2018automatically; @tabak2019machine] with an ecological process model that describes animal density, movement, or community composition [@burton2015wildlife]. 
@@ -361,7 +385,39 @@ Thanks also to the thousands of U.S. and Canadian participants who annually perf
 
 \clearpage
 
+<!-- If not generating a preprint, put figs at end, legends on separate pages -->
 
+`r if (!params$preprint) "# Figures {-}"`
+
+```{r endfig1, fig.cap = fig_caps[1]}
+if (!params$preprint) knitr::include_graphics(fig_src_files[1])
+```
+`r if (!params$preprint) "\\clearpage"`
+
+```{r endfig2, fig.cap = fig_caps[2]}
+if (!params$preprint) knitr::include_graphics(fig_src_files[2])
+```
+`r if (!params$preprint) "\\clearpage"`
+
+```{r endfig3, fig.cap = fig_caps[3]}
+if (!params$preprint) knitr::include_graphics(fig_src_files[3])
+```
+`r if (!params$preprint) "\\clearpage"`
+
+```{r endfig4, fig.cap = fig_caps[4], out.height = "500px"}
+if (!params$preprint) knitr::include_graphics(fig_src_files[4])
+```
+`r if (!params$preprint) "\\clearpage"`
+
+```{r endfig5, fig.cap = fig_caps[5]}
+if (!params$preprint) knitr::include_graphics(fig_src_files[5])
+```
+`r if (!params$preprint) "\\clearpage"`
+
+```{r endfig6, fig.cap = fig_caps[6]}
+if (!params$preprint) knitr::include_graphics(fig_src_files[6])
+```
+`r if (!params$preprint) "\\clearpage"`
 
 
 # Appendix S1 {-}
