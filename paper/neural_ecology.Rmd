@@ -336,7 +336,7 @@ highest_slope_species_sciname <- bbs_species %>%
   unlist
 ```
 
-The analysis of breeding bird survey data indicate that neural hierarchical models can outperform simpler models. 
+The breeding bird survey case study indicates that neural hierarchical models can outperform simpler models. 
 Notably, the final model was performant both quantitatively and qualitatively, detecting population increases and range expansions that are consistent with prior work.
 The case study extends previous analyses of persistence probabilities at range edges [@royle2007bayesian], indicating that common species tend to have higher persistence and colonization probabilities at routes close to their BBS range centroid. 
 Yet, interpreting this result is complicated by irregular range geometry, which can lead to centroids that lie outside of a species range, and incomplete sampling of species ranges, which can result in a mismatch between actual and estimated ranges [@sagarin2002abundant; @fortin2005species; @dallas2017species; @knouft2018appropriate].
