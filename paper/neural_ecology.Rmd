@@ -239,7 +239,7 @@ if (params$preprint) knitr::include_graphics(fig_src_files[2])
 Predictions from final model were qualitatively evaluated to see whether they are plausible, given previous work.
 The most likely occupancy states were computed at all BBS routes for each year and species [@viterbi1967error], which were then used to compute finite sample population growth rates for each species [@royle2007bayesian].
 To quantify range shifts, annual spatial centroids were computed for each species among routes that were predicted to be occupied (hereafter referred to as "BBS range centroids" to differentiate from the actual centroid of a species' entire range). 
-To evaluate whether the results were consistent with previous findings about colonization and extinction gradients over species ranges, correspondence between BBS range centroids and both colonization and persistence probabilities were assessed using linear regression [@mehlman1997change; @royle2007bayesian].
+To evaluate whether the results were consistent with previous findings about colonization and extinction gradients over species ranges, correspondence between BBS range centroids and both colonization and persistence probabilities were assessed using linear regression [@mehlman1997change; @doherty2003local; @royle2007bayesian].
 These qualitative analyses only used BBS routes surveyed in every year, and species that occurred in all years and at 100 or more routes to avoid bias associated with recently added Canadian routes, and variance associated with rare species [@sauer2017expanding].
 
 Finally, to facilitate interpretation of the final model, additional analyses were performed that provide insight into how the model represented BBS routes and bird species. 
@@ -298,7 +298,7 @@ if (params$preprint) knitr::include_graphics(fig_src_files[4])
 
 The majority (`r round(mean(dec_df$phid_cor < 0), 2) * 100`%) of common species were less likely to persist at routes that were distant from their estimated BBS range centroids. 
 Similarly, `r round(mean(dec_df$gammad_cor < 0), 2) * 100`% of common species were less likely to colonize routes distant from their BBS range centroids. 
-There were examples of species with all possible combinations of postive and negative distance coefficients for persistence and colonization (Fig. \@ref(`r ifelse(params$preprint, "fig:persist-dist", "fig:endfig4")`)a).
+There were examples of species with all possible combinations of positive and negative distance coefficients for persistence and colonization (Fig. \@ref(`r ifelse(params$preprint, "fig:persist-dist", "fig:endfig4")`)a).
 Negative relationships were most apparent for common species that occupied a large fraction of BBS routes (Fig. \@ref(`r ifelse(params$preprint, "fig:persist-dist", "fig:endfig4")`)b). 
 Results for representative species are displayed in Fig. \@ref(`r ifelse(params$preprint, "fig:persist-dist", "fig:endfig4")`)c-d.
 
