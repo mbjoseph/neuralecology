@@ -9,6 +9,10 @@ dependencies:
   - numpy
   - pandas
   - python>=3.6
+  - pip
   - tqdm
   - pytorch
+  - torchvision
   - cudatoolkit=10.0
+  - pip:
+      - pyro-ppl

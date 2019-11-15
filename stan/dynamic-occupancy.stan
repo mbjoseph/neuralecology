@@ -22,17 +22,12 @@ data {
 }
 
 transformed data {
-  int ny_minus_1 = nyear - 1;
-  int<lower=0,upper=nrep+1> sum_y[nsite, nyear]; 
-  vector[nyear] year_vec;
   matrix[nsite, nyear] zero_obs;
   matrix[nsite, nyear] nonzero_obs;
   matrix[nsite, nyear] log_zero_obs;
   
-  for (i in 1:nyear) year_vec[i] = i;
   for (i in 1:nsite) {
     for (t in 1:nyear) {
-      sum_y[i, t] = Y[i, t] + 1;
       zero_obs[i, t] = Y[i, t] == 0;
       nonzero_obs[i, t] = (Y[i, t] != 0) * 1e-7;
       log_zero_obs[i, t] = log(zero_obs[i, t] + nonzero_obs[i, t]);

@@ -73,7 +73,7 @@ viterbi_alg <- function(df) {
            extinction_event = lag(z_mle > 0) & z_mle == 0)
 }
 
-cl <- makeCluster(parallel::detectCores() / 2)
+cl <- makeCluster(2)
 clusterEvalQ(cl, library(tidyverse))
 clusterExport(cl, 'viterbi_alg')
 z_mles <- list.files(path = 'out/q_dfs', full.names = TRUE) %>%
