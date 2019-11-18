@@ -130,7 +130,13 @@ get_vm_df <- function() {
 
 vm_df <- get_vm_df()
 vm_plot <- vm_df %>%
-  ggplot(aes(x, y, color = state))+
+  ggplot(aes(x, y, color = state)) + 
+  geom_segment(aes(x = x, xend = xend, y = y, yend = yend), 
+               data = tibble(x = c(-1, 0), 
+                             xend = c(1, 0), 
+                             y = c(0, -1), 
+                             yend = c(0, 1)), 
+               alpha = .1, inherit.aes = FALSE) +
   annotate("path",
            x = cos(seq(0,2*pi,length.out=100)),
            y = sin(seq(0,2*pi,length.out=100)), 
@@ -138,10 +144,10 @@ vm_plot <- vm_df %>%
   geom_path() + 
   geom_point(x = 0, y = 0, color = "black") + 
   theme_minimal() + 
-  theme(panel.grid = element_blank(), 
-        axis.text = element_blank(), 
-        axis.title = element_blank(), 
-        legend.position = "none") + 
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        legend.position = "none") +
   annotate("text", 
            x = c(1, 0, -1, 0) * .8, 
            y = c(0, 1, 0, -1) * .8, 
@@ -361,7 +367,7 @@ simulate_trajectory <- function(dummy_arg) {
        out_files = list.files(out_dir, full.names = TRUE))
 }
 
-sims <- pblapply(1:10, simulate_trajectory)
+sims <- pblapply(1:1000, simulate_trajectory)
 
 lapply(file.path("out", "trajectories", c("test", "train", "validation")), 
        function(x) length(list.files(x)))
@@ -443,22 +449,32 @@ sim_df %>%
 
 # Visualize all chips in the training data
 bbox_files <- list.files('out/trajectories', pattern = "chip_bboxes", 
-                         recursive = TRUE, full.names = TRUE)
+                         recursive = TRUE, full.names = TRUE) %>%
+  sort
 bboxes <- bbox_files %>%
   lapply(st_read)
 
-bboxes <-  sf::st_as_sf(data.table::rbindlist(bboxes)) %>%
-  mutate(src = rep(bbox_files, each = length(sim$chips)), 
+bbox_df <-  sf::st_as_sf(data.table::rbindlist(bboxes)) %>%
+  mutate(src = rep(bbox_files, each = nrow(bboxes[[1]])), 
          group = case_when(
            grepl("train", src) ~ "train", 
            grepl("test", src) ~ "test", 
-           grepl("valid", src) ~ "valid"
+           grepl("valid", src) ~ "validation"
          )) %>%
-  st_centroid
+  st_centroid %>%
+  group_by(group) %>%
+  mutate(file_order = 1:n()) %>%
+  filter(file_order <= 1280 * nrow(bboxes[[1]])) %>%# take 1280 trajectories
+  group_by(src, group) %>%
+  summarize() %>%
+  st_cast("LINESTRING")
 
-bboxes %>%
+traj_plot <- bbox_df %>%
+  ungroup %>%
+  mutate(group = factor(tools::toTitleCase(group), 
+                        levels = c("Train", "Validation", "Test"))) %>%
   ggplot(aes(color = group)) + 
-  geom_sf(size=.2)
-
-
-# Tile the rgb mosaic for plotting
+  geom_sf(size = .5) + 
+  scale_color_manual("Partition", values = c("black", "dodgerblue", "red")) + 
+  theme_minimal()
+ggsave("fig/traj-plot.png", traj_plot, width = 8, height = 5)

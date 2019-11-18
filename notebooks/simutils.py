@@ -132,7 +132,7 @@ def get_loaders(nmax, batch_size):
         ),
         "valid": torch.utils.data.DataLoader(
             datasets["validation"],
-            batch_size=batch_size * 8,
+            batch_size=batch_size * 2,
             shuffle=True,
             num_workers=6,
         ),

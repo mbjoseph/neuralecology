@@ -90,8 +90,10 @@ class ConvNet(torch.nn.Module):
         self.pool3 = nn.MaxPool2d(kernel_size=3, stride=2)
 
         self.fc = nn.Sequential(
+            nn.Dropout(),
             nn.Linear(64 * 2 * 2, 128),
             nn.LeakyReLU(),
+            nn.Dropout(),
             nn.Linear(128, 64),
             nn.LeakyReLU(),
             nn.Linear(64, 4),
@@ -160,7 +162,7 @@ class PtNet(torch.nn.Module):
 
 
 # # Train the models
-n_epoch = 50 # Good results with 100 epochs, no weight decay
+n_epoch = 100 # Good results with 100 epochs, no weight decay
 train_data_sizes = [2 ** i for i in range(6, 11)]  # 2**8=256, 2**11=2048
 print(train_data_sizes)
 
