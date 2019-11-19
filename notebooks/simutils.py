@@ -248,13 +248,23 @@ def get_loglik(xy, pars):
     step_size = xy["step_size"].to(device)
     turn_angle = xy["turn_angle"].to(device)
 
-    batch_size = step_size.shape[0]
-    nt = step_size.shape[1]
-
     Omega = pars["Omega"]
     gamma_pars = pars["gamma_pars"]
     loc_pars = pars["loc_pars"]
     conc_pars = pars["conc_pars"]
+
+    loglik = forward_algorithm(
+        step_size, turn_angle, Omega, gamma_pars, loc_pars, conc_pars
+    )
+    return loglik
+
+
+def forward_algorithm(
+    step_size, turn_angle, Omega, gamma_pars, loc_pars, conc_pars
+):
+    """Scaled forward algorithm for sequence log likelihood. """
+    batch_size = step_size.shape[0]
+    nt = step_size.shape[1]
 
     # Generate step size distributions
     step_d1 = torch.distributions.Gamma(gamma_pars[0, 0], gamma_pars[0, 1])
@@ -269,8 +279,6 @@ def get_loglik(xy, pars):
     angle_p2 = angle_d2.log_prob(turn_angle)
 
     # po gives the probability of each observation, conditional on the state.
-    # multiply probabilities from step size and angle distributions because
-    # they are assumed to be conditionally independent
     po = torch.stack(
         (torch.exp(step_p1 + angle_p1), torch.exp(step_p2 + angle_p2)), -1
     )  # (batch_size, nt, 2)
@@ -310,6 +318,7 @@ def get_loglik(xy, pars):
         alpha = c[-1].view(-1, 1, 1) * alpha_raw
     c_stacked = torch.stack(c, -1)
     return -torch.sum(torch.log(c_stacked), dim=-1)
+
 
 
 """ Visualization utilities"""

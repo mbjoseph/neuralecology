@@ -225,7 +225,7 @@ simulate_trajectory <- function(dummy_arg) {
   # iterate over step sizes and turning angles to create path
   cumrads <- 0
   for (t in 1:n) {
-    if (state[t] == 1) { 
+    if (state[t] == 1) {
       # state 1: in transit
       turn_angle[t] <- rads1[t]
       step_size[t] <- lengths1[t]
@@ -233,6 +233,10 @@ simulate_trajectory <- function(dummy_arg) {
       # state 2: foraging
       turn_angle[t] <- rads2[t]
       step_size[t] <- lengths2[t]
+    }
+    if (t == 1) {
+      # for the initial timestep, choose a random starting direction
+      turn_angle[t] <- rvonmises(1, 0, 0)
     }
     cumrads <- cumrads + turn_angle[t]
     
@@ -309,6 +313,13 @@ simulate_trajectory <- function(dummy_arg) {
   }
   assertthat::assert_that(length(unique(ncells)) == 1)
   
+  n_na <- lapply(chips, function(x) {
+    cellStats(is.na(x), sum)
+  }) %>%
+    unlist %>%
+    sum
+  assertthat::assert_that(n_na == 0)
+  
   # assign the trajectory to the training, validation, or test set
   # these values correspond to splitting the northing values into thirds
   total_extent <- extent(rgb_mosaic)
@@ -367,7 +378,15 @@ simulate_trajectory <- function(dummy_arg) {
        out_files = list.files(out_dir, full.names = TRUE))
 }
 
-sims <- pblapply(1:1000, simulate_trajectory)
+n_iter <- 1000
+pb <- txtProgressBar(max=n_iter, style = 3)
+sims <- vector(mode = "list", length = n_iter)
+for (i in 1:n_iter) {
+  sims[[i]] <- simulate_trajectory(i)
+  setTxtProgressBar(pb, i)
+}
+close(pb)
+
 
 lapply(file.path("out", "trajectories", c("test", "train", "validation")), 
        function(x) length(list.files(x)))

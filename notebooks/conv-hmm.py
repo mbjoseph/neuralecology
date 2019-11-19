@@ -162,7 +162,7 @@ class PtNet(torch.nn.Module):
 
 
 # # Train the models
-n_epoch = 100 # Good results with 100 epochs, no weight decay
+n_epoch = 100  # Good results with 100 epochs, no weight decay
 train_data_sizes = [2 ** i for i in range(6, 11)]  # 2**8=256, 2**11=2048
 print(train_data_sizes)
 
