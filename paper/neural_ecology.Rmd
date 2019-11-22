@@ -259,18 +259,20 @@ if (params$preprint) knitr::include_graphics(fig_src_files[2])
 The final model's performance was evaluated quantiatitvely and qualitatively. 
 Quantitative predictive performance was evaluated in two ways. 
 First, 95% prediction interval coverage was computed for test set counts.
-Second, the area under the receiver operator characteristic curve (AUC) was computed for binarized test set counts.
 Prediction intervals were constructed using the quantiles of the binomial distribution, marginalizing over latent states. 
+Second, the area under the receiver operator characteristic curve (AUC) was computed for binarized test set counts.
 The AUC analysis also marginalized over latent states to derive predicted probabilities, e.g., $\text{Pr}(y_{t, s, j} = 0 \mid p_{t, s, j}, \psi_{t, s, j}) = 1 - \psi_{t, s, j} + \psi_{t, s, j}(1 - p_{t, s, j})^{50}$, where the parameters $p$ and $\psi$ are estimated by the model.
 These two approaches provide information on how well the final model could predict the number of stops with detections at each route, and whether any detections would occur on each route, respectively. 
 
-Predictions from final model were qualitatively evaluated to see whether they are plausible, given previous analyses of BBS data.
-The most likely occupancy states were computed at all BBS routes for each year and species [@viterbi1967error], which were then used to compute finite sample population growth rates for each species [@royle2007bayesian].
-These predicted occupancy states were also used to compute annual spatial centroids for each species, using the coordinates of routes that were predicted to be occupied.
+Qualitative analyses were based on predicted occupancy states from the final model.
+The most likely occupancy states were computed at all BBS routes for each year and species using the Viterbi algorithm [@viterbi1967error].
+The estimated occupancy states were then used to compute finite sample population growth rates for each species [@royle2007bayesian].
+Occupancy state estimates were also used to compute annual spatial centroids for each species, by taking the spatial centroids of occupied route coordinates.
 These are hereafter referred to as "BBS range centroids" to differentiate from the actual centroid of a species' entire range. 
 
-To evaluate whether the results were consistent with previous findings about colonization and extinction gradients over species ranges, correspondence between BBS range centroids and both colonization and persistence probabilities were assessed using linear regression [@mehlman1997change; @doherty2003local; @royle2007bayesian].
-For this qualitative analysis, the response variable was colonization or persistence, and the predictor was distance from BBS range centroid. 
+To evaluate whether the results were qualitatively consistent with previous findings about colonization and extinction gradients over species ranges, correspondence between BBS range centroids and both colonization and persistence probabilities were assessed using linear regression [@mehlman1997change; @doherty2003local; @royle2007bayesian].
+For this analysis, the response variable was colonization or persistence averaged over time, the predictor was distance from BBS range centroid, and BBS routes were the sample units.
+Separate analyses were conducted for each species.
 To avoid bias associated with recently added BBS routes and variance associated with rare species, these analyses only used data from BBS routes surveyed in every year, species observed in every year, and species that occurred in 100 or more routes [@sauer2017expanding]. 
 
 Finally, visualizations were developed to graphically interpret the final model. 
@@ -444,12 +446,12 @@ if (!params$preprint) knitr::include_graphics(fig_src_files[4])
 ```
 `r if (!params$preprint) "\\clearpage"`
 
-```{r endfig5, fig.cap = fig_caps[5]}
+```{r endfig5, fig.cap = fig_caps[5], out.width = "500px"}
 if (!params$preprint) knitr::include_graphics(fig_src_files[5])
 ```
 `r if (!params$preprint) "\\clearpage"`
 
-```{r endfig6, fig.cap = fig_caps[6]}
+```{r endfig6, fig.cap = fig_caps[6], out.width = "500px"}
 if (!params$preprint) knitr::include_graphics(fig_src_files[6])
 ```
 `r if (!params$preprint) "\\clearpage"`
