@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import PIL
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import torchvision
 import pyro.distributions
 
@@ -79,8 +81,8 @@ class TrajectoryDataset(torch.utils.data.Dataset):
         chip_tensors = torch.stack(
             [self._load_chip(c) for c in sorted(chips)], dim=0
         )
-
-        assert chip_tensors.shape == (20, 4, self.chip_nxy, self.chip_nxy)
+        
+        assert chip_tensors.shape == (50, 4, self.chip_nxy, self.chip_nxy), f"{subdir} has wrong shape"
 
         trajectory = pd.read_csv(os.path.join(subdir, "coords.csv"))
         turn_angle = torch.tensor(
@@ -108,10 +110,10 @@ class TrajectoryDataset(torch.utils.data.Dataset):
             "chm": chm.unsqueeze(-1),
             "rgb_pt": rgb_pt / 255,
         }
-        return sample
+        return sample, idx
 
 
-def get_loaders(nmax, batch_size):
+def get_loaders(nmax, batch_size, shuffle_validation=True):
     """ Get DataLoader objects of train/valid sets.
     
     Args: 
@@ -133,7 +135,7 @@ def get_loaders(nmax, batch_size):
         "valid": torch.utils.data.DataLoader(
             datasets["validation"],
             batch_size=batch_size * 2,
-            shuffle=True,
+            shuffle=shuffle_validation,
             num_workers=6,
         ),
     }
@@ -158,10 +160,10 @@ def fit(Model, input_name, loaders, n_epoch=1):
     train_loss = []
     valid_loss = []
     model = Model().to(device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-6)
     for i in tqdm(range(n_epoch)):
         model.train()
-        for i_batch, xy in enumerate(loaders["train"]):
+        for i_batch, (xy, idx) in enumerate(loaders["train"]):
             optimizer.zero_grad()
             out = model(xy[input_name].to(device))
             loss = -torch.mean(get_loglik(xy, out))
@@ -170,7 +172,7 @@ def fit(Model, input_name, loaders, n_epoch=1):
             train_loss.append(float(loss.detach()))
 
         model.eval()
-        for i_batch, vxy in enumerate(loaders["valid"]):
+        for i_batch, (vxy, idx) in enumerate(loaders["valid"]):
             if i_batch < 10:  # evaluate on a random subset
                 vout = model(vxy[input_name].to(device))
                 loss = -torch.mean(get_loglik(vxy, vout))
@@ -189,7 +191,7 @@ def save_model(model, n, train_loss, valid_loss):
     ../out/params/ModelClass_samplesize_params.pt
     
     Args: 
-        model (torch.nn.Module): model with params to save
+        model (nn.Module): model with params to save
         n (int): training set size
         train_loss (numpy.array): training loss values
         valid_loss (numpy.array): validation loss values
@@ -279,9 +281,21 @@ def forward_algorithm(
     angle_p2 = angle_d2.log_prob(turn_angle)
 
     # po gives the probability of each observation, conditional on the state.
-    po = torch.stack(
-        (torch.exp(step_p1 + angle_p1), torch.exp(step_p2 + angle_p2)), -1
-    )  # (batch_size, nt, 2)
+    # first observation only contains step size (turn angle needs two vectors)
+    po_first = torch.stack(
+      (torch.exp(step_p1[:, 0]), torch.exp(step_p2[:, 0])), -1
+    ).unsqueeze(1)
+    assert po_first.shape == (batch_size, 1, 2)
+    
+    # subsequent time steps contain step sizes AND turn angles
+    po_subsequent = torch.stack(
+        (torch.exp(step_p1[:, 1:] + angle_p1[:, 1:]), 
+         torch.exp(step_p2[:, 1:] + angle_p2[:, 1:])),
+         -1
+    )
+    assert po_subsequent.shape == (batch_size, nt - 1, 2)
+    
+    po = torch.cat((po_first, po_subsequent), dim=1) # stack in time dimension
     assert po.shape == (batch_size, nt, 2)
 
     # initial state probabilities are stationary distribution probs
@@ -360,3 +374,81 @@ def plot_stationary_probs(out, xy, which_prob=1):
     )
     plt.xlabel("True stationary probability")
     plt.ylabel("Estimated stationary probability")
+
+
+
+
+class ConvNet(nn.Module):
+    """ Definition for a convolutional movement model
+    
+    This model takes "chips" as input, where each chip
+    is a tile from an RGB image centered on the animal's
+    measured location. 
+    
+    This convolutional neural network maps image chips to 
+    state transition probability matrices:
+    
+    Omega = f(image chip), 
+    
+    where Omega is a transition matrix and f is the convnet.
+    """
+
+    def __init__(self):
+        super(ConvNet, self).__init__()
+        # scalar parameters
+        self.gamma_pars = nn.Parameter(torch.randn(2, 2) * 0.1)
+        self.loc_pars = nn.Parameter(torch.randn(2) * 0.1)
+        self.conc_pars = nn.Parameter(torch.randn(2) * 0.1)
+
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(4, 16, kernel_size=9, stride=3), nn.LeakyReLU(),
+        )
+        self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2)
+
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(16, 32, kernel_size=5), nn.LeakyReLU(),
+        )
+        self.pool2 = nn.MaxPool2d(kernel_size=3, stride=2)
+
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(32, 64, kernel_size=3), nn.LeakyReLU(),
+        )
+        self.pool3 = nn.MaxPool2d(kernel_size=3, stride=2)
+
+        self.fc = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(64 * 2 * 2, 128),
+            nn.LeakyReLU(),
+            nn.Dropout(),
+            nn.Linear(128, 64),
+            nn.LeakyReLU(),
+            nn.Dropout(),
+            nn.Linear(64, 4),
+        )
+
+    def forward(self, x):
+        batch_size = x.shape[0]
+        nt = x.shape[1]
+        batch_times_nt = batch_size * nt
+        # x is an RGB chip of shape (batch, nt, channels, width, height)
+        # reshape to (batch * nt, channels, width, height)
+        # as advised https://github.com/pytorch/pytorch/issues/21688
+        x = x.view(batch_times_nt, 4, 128, 128)
+        x = self.conv1(x)
+        x = self.pool1(x)
+        x = self.conv2(x)
+        x = self.pool2(x)
+        x = self.conv3(x)
+        x = self.pool3(x)
+        x = x.view(batch_times_nt, -1)  # flatten
+        x = self.fc(x)
+
+        # reshape to (batch, nt, 2, 2) for transition matrices
+        Omega = F.softmax(x.view(-1, nt, 2, 2), dim=-1)
+        return {
+            "Omega": Omega,
+            "gamma_pars": torch.exp(self.gamma_pars),
+            "conc_pars": torch.exp(self.conc_pars),
+            "loc_pars": self.loc_pars,  # VonMises location is unconstrained
+        }
+

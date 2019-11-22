@@ -187,36 +187,35 @@ get_coords <- function(x, y) {
 
 
 
-simulate_trajectory <- function(dummy_arg) {
+simulate_trajectory <- function() {
   sim_id <- Sys.time() %>%
     format("%Y-%m-%d_%H%M%S") %>%
     paste(sep = "_", sample(letters, size = 8, replace = TRUE) %>% 
             paste(collapse=''))
-  n <- 20
+  n_timesteps <- 50
   ex <- extent(chm)
   x_init <- runif(1, ex@xmin, ex@xmax)
   y_init <- runif(1, ex@ymin, ex@ymax)
   
-  rads1 <- sim_radii(n, state = 1)
-  rads2 <- sim_radii(n, state = 2)
+  rads1 <- sim_radii(n_timesteps, state = 1)
+  rads2 <- sim_radii(n_timesteps, state = 2)
   
   coords <- get_coords(x_init, y_init)
   
   z0 <- raster::extract(chm, coords)
   if (is.na(z0)) return(NULL)
   
-  state <- rep(NA, n + 1)
+  state <- rep(NA, n_timesteps + 1)
   state[1] <- 1 + rbinom(1, 1, stationary_probs(z0)[2])
   
-  lengths1 <- sim_step_size(n, state = 1)
-  lengths2 <- sim_step_size(n, state = 2)
-  br <- seq(0, ceiling(max(lengths1)), length.out = round(n / 4))
+  lengths1 <- sim_step_size(n_timesteps, state = 1)
+  lengths2 <- sim_step_size(n_timesteps, state = 2)
   
-  x <- rep(NA, n + 1)
-  y <- rep(NA, n + 1)
-  z <- rep(NA, n + 1)
-  turn_angle <- rep(NA, n + 1)
-  step_size <- rep(NA, n + 1)
+  x <- rep(NA, n_timesteps + 1)
+  y <- rep(NA, n_timesteps + 1)
+  z <- rep(NA, n_timesteps + 1)
+  turn_angle <- rep(NA, n_timesteps + 1)
+  step_size <- rep(NA, n_timesteps + 1)
   
   x[1] <- x_init
   y[1] <- y_init
@@ -224,7 +223,7 @@ simulate_trajectory <- function(dummy_arg) {
   
   # iterate over step sizes and turning angles to create path
   cumrads <- 0
-  for (t in 1:n) {
+  for (t in 1:n_timesteps) {
     if (state[t] == 1) {
       # state 1: in transit
       turn_angle[t] <- rads1[t]
@@ -337,16 +336,17 @@ simulate_trajectory <- function(dummy_arg) {
   
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   chip_paths <- rep(NA, length(chips))
-  for (i in seq_along(chips)) {
-    chip_paths[i] <- file.path(out_dir, 
+  for (t in seq_along(chips)) {
+    chip_paths[t] <- file.path(out_dir, 
                          paste0("chip_", 
-                                sprintf("%03d", i),
+                                sprintf("%03d", t),
                                 ".tif"))
-    writeRaster(chips[[i]], 
-                filename = chip_paths[i],
+    # write a regular tiff
+    writeRaster(chips[[t]], 
+                filename = chip_paths[t],
                 options = c("PROFILE=BASELINE"), # makes it not a geotiff
                 datatype = 'INT1U')
-    file.rename(chip_paths[i], paste0(chip_paths[i], 'f'))
+    file.rename(chip_paths[t], paste0(chip_paths[t], 'f'))
   }
 
   probs <- stationary_probs(z)
@@ -378,28 +378,54 @@ simulate_trajectory <- function(dummy_arg) {
        out_files = list.files(out_dir, full.names = TRUE))
 }
 
-n_iter <- 1000
+n_iter <- 400
 pb <- txtProgressBar(max=n_iter, style = 3)
 sims <- vector(mode = "list", length = n_iter)
 for (i in 1:n_iter) {
-  sims[[i]] <- simulate_trajectory(i)
+  sims[[i]] <- simulate_trajectory()
   setTxtProgressBar(pb, i)
 }
 close(pb)
 
-
+# if any more than 1024 trajectories per dir, delete the extras
 lapply(file.path("out", "trajectories", c("test", "train", "validation")), 
-       function(x) length(list.files(x)))
+       function(x) {
+         f <- list.files(x, include.dirs = TRUE, full.names = TRUE)
+         if (length(f) > 1024) {
+           to_delete <- f[1025:length(f)]
+           unlink(to_delete, recursive = TRUE, force = TRUE)
+         }
+       })
 
 
-null_sims <- lapply(sims, is.null) %>%
-  unlist
-idx <- sample(which(!null_sims), 1)
-sim <- sims[[idx]]
 
-sim_df <- st_read(sim$df_sf)
+# Ensure that all written trajectories have 50 image chips
+all_trajectories <- lapply(file.path("out", "trajectories", 
+                                     c("test", "train", "validation")), 
+                           list.files, full.names = TRUE)
+
+pblapply(unlist(all_trajectories), function(x) {
+  chip_files <- list.files(path = x, pattern = "*.tiff")
+  if (length(chip_files) != 50) {
+    unlink(x, recursive = TRUE, force = TRUE)
+  }
+})
+
+trajectories <- lapply(file.path("out", "trajectories", 
+                                 c("test", "train", "validation")), 
+                       list.files, full.names = TRUE)
+
+# how many trajectories are there in the test, train, and validation set?
+lapply(trajectories, length)
+
 
 # Generate an example plot for a movement trajectory ----------------------
+
+trajdir <- sample(trajectories[[1]], size = 1)
+
+sim_df <- file.path(trajdir, "coords.gpkg") %>%
+  st_read
+
 
 p1 <- sim_df %>%
   ggplot(aes(x, y)) + 
@@ -423,16 +449,16 @@ p1 <- sim_df %>%
   ggtitle("A")
 p1
 
-sim$chips <- grep(pattern = "bboxes", sim$out_files, value = TRUE) %>%
+chips <- file.path(trajdir, "chip_bboxes.gpkg") %>%
   st_read %>%
   mutate(id = 1:n()) %>%
   split(.$id) %>%
   pblapply(function(x) {
-    stack(sim$rgb_crop) %>%
+    stack(file.path(trajdir, "rgb_crop.tif")) %>%
       crop(x) 
   })
 
-chip_mosaic <- sim$chips
+chip_mosaic <- chips
 names(chip_mosaic)[1:2] <- c("x", "y")
 chip_mosaic$fun <- mean
 chip_mosaic$na.rm <- TRUE
@@ -443,7 +469,7 @@ p2 <- ggplot() +
   theme_minimal() + 
   geom_sf(data = summarize(sim_df, do_union=FALSE) %>%
             st_cast('LINESTRING'), size = .1, color = "white") + 
-  geom_sf(data = sim_df, color = "white") + 
+  geom_sf(data = sim_df, color = "white", size = .4) + 
   theme(axis.text = element_blank(), 
         panel.grid = element_blank(), 
         legend.position = 'none') + 
@@ -451,18 +477,6 @@ p2 <- ggplot() +
 p2
 
 p1 + p2
-
-
-sim_df %>%
-  ggplot(aes(t, step_size, color = state)) + 
-  geom_point()
-
-sim_df %>%
-  ggplot(aes(t, turn_angle)) + 
-  geom_line()
-
-
-
 
 
 
@@ -481,11 +495,8 @@ bbox_df <-  sf::st_as_sf(data.table::rbindlist(bboxes)) %>%
            grepl("valid", src) ~ "validation"
          )) %>%
   st_centroid %>%
-  group_by(group) %>%
-  mutate(file_order = 1:n()) %>%
-  filter(file_order <= 1280 * nrow(bboxes[[1]])) %>%# take 1280 trajectories
   group_by(src, group) %>%
-  summarize() %>%
+  summarize(do_union=FALSE) %>%
   st_cast("LINESTRING")
 
 traj_plot <- bbox_df %>%
@@ -493,7 +504,8 @@ traj_plot <- bbox_df %>%
   mutate(group = factor(tools::toTitleCase(group), 
                         levels = c("Train", "Validation", "Test"))) %>%
   ggplot(aes(color = group)) + 
-  geom_sf(size = .5) + 
+  geom_sf(size = .3) + 
   scale_color_manual("Partition", values = c("black", "dodgerblue", "red")) + 
   theme_minimal()
+traj_plot
 ggsave("fig/traj-plot.png", traj_plot, width = 8, height = 5)
