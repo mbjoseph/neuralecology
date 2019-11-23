@@ -19,7 +19,6 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 
-
 # Train the models
 n_epoch = 100
 train_data_sizes = [2 ** i for i in range(4, 11)]

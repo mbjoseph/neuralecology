@@ -15,9 +15,9 @@ loss %>%
   xlab("Training set size") + 
   ylab("Validation log-likelihood") + 
   theme_minimal() + 
-  annotate(geom = "text", x = 512, y = -58000, label = "Best case") + 
-  annotate(geom = "text", x = 512, y = -62000, label = "ConvHMM") + 
-  annotate(geom = "text", x = 512, y = -65500, label = "Point extraction") + 
+  annotate(geom = "text", x = 512, y = -141000, label = "Best case") + 
+  annotate(geom = "text", x = 512, y = -150000, label = "ConvHMM") + 
+  annotate(geom = "text", x = 512, y = -160000, label = "Point extraction") + 
   theme(legend.position = "none", 
         panel.grid.minor = element_blank()) + 
   scale_color_manual(values = c("darkorange1", "grey50", "darkorchid"))

@@ -56,6 +56,7 @@ class TrajectoryDataset(torch.utils.data.Dataset):
 
     def _load_chip(self, path):
         chip = PIL.Image.open(path)
+
         if self.train:
             self.train_transforms()(chip)
         chip = self.common_transforms()(chip)
@@ -81,8 +82,13 @@ class TrajectoryDataset(torch.utils.data.Dataset):
         chip_tensors = torch.stack(
             [self._load_chip(c) for c in sorted(chips)], dim=0
         )
-        
-        assert chip_tensors.shape == (50, 4, self.chip_nxy, self.chip_nxy), f"{subdir} has wrong shape"
+
+        assert chip_tensors.shape == (
+            50,
+            4,
+            self.chip_nxy,
+            self.chip_nxy,
+        ), f"{subdir} has wrong shape"
 
         trajectory = pd.read_csv(os.path.join(subdir, "coords.csv"))
         turn_angle = torch.tensor(
@@ -160,7 +166,9 @@ def fit(Model, input_name, loaders, n_epoch=1):
     train_loss = []
     valid_loss = []
     model = Model().to(device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-6)
+    optimizer = torch.optim.SGD(
+        model.parameters(), lr=0.0001, momentum=0.9, weight_decay=1e-6
+    )
     for i in tqdm(range(n_epoch)):
         model.train()
         for i_batch, (xy, idx) in enumerate(loaders["train"]):
@@ -173,7 +181,7 @@ def fit(Model, input_name, loaders, n_epoch=1):
 
         model.eval()
         for i_batch, (vxy, idx) in enumerate(loaders["valid"]):
-            if i_batch < 10:  # evaluate on a random subset
+            if i_batch < 5:  # evaluate on a random subset
                 vout = model(vxy[input_name].to(device))
                 loss = -torch.mean(get_loglik(vxy, vout))
                 valid_loss.append(float(loss.detach()))
@@ -283,19 +291,21 @@ def forward_algorithm(
     # po gives the probability of each observation, conditional on the state.
     # first observation only contains step size (turn angle needs two vectors)
     po_first = torch.stack(
-      (torch.exp(step_p1[:, 0]), torch.exp(step_p2[:, 0])), -1
+        (torch.exp(step_p1[:, 0]), torch.exp(step_p2[:, 0])), -1
     ).unsqueeze(1)
     assert po_first.shape == (batch_size, 1, 2)
-    
+
     # subsequent time steps contain step sizes AND turn angles
     po_subsequent = torch.stack(
-        (torch.exp(step_p1[:, 1:] + angle_p1[:, 1:]), 
-         torch.exp(step_p2[:, 1:] + angle_p2[:, 1:])),
-         -1
+        (
+            torch.exp(step_p1[:, 1:] + angle_p1[:, 1:]),
+            torch.exp(step_p2[:, 1:] + angle_p2[:, 1:]),
+        ),
+        -1,
     )
     assert po_subsequent.shape == (batch_size, nt - 1, 2)
-    
-    po = torch.cat((po_first, po_subsequent), dim=1) # stack in time dimension
+
+    po = torch.cat((po_first, po_subsequent), dim=1)  # stack in time dimension
     assert po.shape == (batch_size, nt, 2)
 
     # initial state probabilities are stationary distribution probs
@@ -332,7 +342,6 @@ def forward_algorithm(
         alpha = c[-1].view(-1, 1, 1) * alpha_raw
     c_stacked = torch.stack(c, -1)
     return -torch.sum(torch.log(c_stacked), dim=-1)
-
 
 
 """ Visualization utilities"""
@@ -374,8 +383,6 @@ def plot_stationary_probs(out, xy, which_prob=1):
     )
     plt.xlabel("True stationary probability")
     plt.ylabel("Estimated stationary probability")
-
-
 
 
 class ConvNet(nn.Module):
@@ -451,4 +458,3 @@ class ConvNet(nn.Module):
             "conc_pars": torch.exp(self.conc_pars),
             "loc_pars": self.loc_pars,  # VonMises location is unconstrained
         }
-
