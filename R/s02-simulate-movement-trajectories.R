@@ -378,7 +378,7 @@ simulate_trajectory <- function() {
        out_files = list.files(out_dir, full.names = TRUE))
 }
 
-n_iter <- 3000
+n_iter <- 4000
 pb <- txtProgressBar(max=n_iter, style = 3)
 sims <- vector(mode = "list", length = n_iter)
 for (i in 1:n_iter) {

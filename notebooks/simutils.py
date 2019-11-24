@@ -119,7 +119,7 @@ class TrajectoryDataset(torch.utils.data.Dataset):
         return sample, idx
 
 
-def get_loaders(nmax, batch_size, shuffle_validation=True):
+def get_loaders(nmax, batch_size):
     """ Get DataLoader objects of train/valid sets.
     
     Args: 
@@ -130,6 +130,7 @@ def get_loaders(nmax, batch_size, shuffle_validation=True):
             "../out/trajectories/train", train=True, nmax=nmax
         ),
         "validation": TrajectoryDataset("../out/trajectories/validation"),
+        "test": TrajectoryDataset("../out/trajectories/test")
     }
     dataloaders = {
         "train": torch.utils.data.DataLoader(
@@ -140,8 +141,14 @@ def get_loaders(nmax, batch_size, shuffle_validation=True):
         ),
         "valid": torch.utils.data.DataLoader(
             datasets["validation"],
-            batch_size=batch_size * 2,
-            shuffle=shuffle_validation,
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=6,
+        ),
+        "test": torch.utils.data.DataLoader(
+            datasets["test"],
+            batch_size=batch_size,
+            shuffle=True,
             num_workers=6,
         ),
     }

@@ -10,3 +10,4 @@ centroid-displacement.*
 persist-dist-plot.*
 conv_hmm_edited.pdf
 movement-distributions.pdf
+convhmm-perf.pdf

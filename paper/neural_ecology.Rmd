@@ -672,9 +672,9 @@ The rows of the emission matrix correspond to states (alive, recently dead, long
 
 ### Process model {-}
 
-At time $t$, the transition probability matrix $\vec{\Gamma}}_t$ contains the probability of transitioning from row $j$ to column $k$:
+At time $t$, the transition probability matrix $\vec{\Gamma}_t$ contains the probability of transitioning from row $j$ to column $k$:
 
-$$\vec{\Gamma}}_t = 
+$$\vec{\Gamma}_t = 
 \begin{bmatrix}
     \phi_t  & 1 - \phi_t & 0 \\
     0       & 0          & 1 \\
@@ -759,7 +759,7 @@ Animals were more likely to forage where the canopy is high, and more likely to 
 
 Formally, consider a time series of length $T$ containing the state of an animal at discrete times $t=1,...,T$, where $s_t = 1$ means the animal is "in transit" and $s_t = 2$ means the animal is "foraging" at time $t$. 
 The state $s_t$ is either 1 or 2 for any particular $t$. 
-The probabilities of transitioning between states is time-varying, and is summarized in a matrix $\vec{\Gamma}}^{(t)}$, which contains the transition probabilities $\gamma_{i, j}^{(t)}$ for states $i, j = 1, 2$ at time $t$. 
+The probabilities of transitioning between states is time-varying, and is summarized in a matrix $\vec{\Gamma}^{(t)}$, which contains the transition probabilities $\gamma_{i, j}^{(t)}$ for states $i, j = 1, 2$ at time $t$. 
 Each of these elements provides the probability of transitioning from one state to another, so that $\gamma_{i, j}^{(t)} = [s_{t + 1} = j \mid s_{t} = i]$. 
 For example $\gamma_{1, 2}^{(t)}$ would provide the probability of transitioning from "in transit" in time $t$ ($s_t = 1$) to "foraging" in time $t+1$ ($s_{t + 1} = 2$).
 At the first timestep, the state probabilities are contained in a row vector $\delta$, where $\delta_i = [s_{t = 1} = i]$, for states $i=1$ and $i=2$.
@@ -784,7 +784,7 @@ Foraging is characterized by small step lengths with undirected turns.
 Movement trajectories for animals in transit are characterized by longer step lengths and more directed movements. 
 
 Formally, if the vector $\vec{z}_t$ summarizes movement in the interval from time $t$ to $t+1$, it is common to consider $\vec{z}_t$ as a vector containing two quantities: the step size $l_t$ and turning angle $\phi_t$, so that $\vec{z}_t = (l_t, \phi_t)$ [@patterson2017statistical]. 
-Thus, the movement model is a hidden Markov model with states $\{s_t\}_{t=1}^T$, transition probability matrices $\{\vec{\Gamma}}^{(t)}\}_{t = 1}^T$, and emissions $\{\vec{z}_t\}_{t=1}^T$ (Fig. \@ref(fig:hmm-general)). 
+Thus, the movement model is a hidden Markov model with states $\{s_t\}_{t=1}^T$, transition probability matrices $\{\vec{\Gamma}^{(t)}\}_{t = 1}^T$, and emissions $\{\vec{z}_t\}_{t=1}^T$ (Fig. \@ref(fig:hmm-general)). 
 
 ```{r hmm-general, fig.cap='Graphical representation of the hidden Markov model for animal movement. The behavioral state $s_t$ is associated with a state transition probability matrix $\\vec{\\Gamma}^{(t)}$, with observations $\\vec{z}_t$ that represent the movement trajectory of the animal.', out.width = "250px"}
 knitr::include_graphics(here('fig', 'hmm-general'))
@@ -810,6 +810,7 @@ Initial movement directions (at $t=1$) were randomly drawn from the uniform circ
 
 Trajectories simulated within the study area were partitioned into three sets based on the northing coordinate boundaries of the trajectory extents. 
 Trajectories in the northern third of the study area were assigned to the training set, those in in the southern third were used as a withheld test set, and those in the middle third were used as a validation set (Fig. \@ref(fig:traj-plot)). 
+For each partition, 1024 trajectories were simulated, to generate 3072 total trajectories across all partitions. 
 
 ```{r traj-plot, fig.cap='Map of the simulated trajectories in space, colored by dataset partition.'}
 knitr::include_graphics(here('fig', 'traj-plot'))
@@ -821,7 +822,7 @@ Three models were developed, each of which maps a different set of inputs to tra
 
 1. A **best case model** that takes canopy height as a state transition covariate. This represents the perfect scenario (unlikely in practice) where all relevant spatiotemporal information is provided to the model, and the generative model is correctly specified in every way. This best case model provides a useful upper bound on predictive performance. 
 2. A **point extraction model** that takes the RGB reflectance values from the aerial imagery extracted at point locations. This represents a more common scenario where covariate data indirectly related to the relevant spatiotemporal information (canopy height) are extracted at point locations. This model is likely to perform poorly, as the RGB reflectance at a point location may not contain much information about canopy height. 
-3. A **convolutional neural hierarchical model** that takes image chips centered on point locations as input, and maps these image chips to transition matrices using a convolutional neural network. If RGB image chips contain more information about canopy height than simple RGB point extractions and sufficient training data are available, this model should perform better than the point extraction model. 
+3. A **convolutional hidden Markov model** that takes image chips centered on point locations as input, and maps these image chips to transition matrices using a convolutional neural network. If RGB image chips contain more information about canopy height than simple RGB point extractions and sufficient training data are available, this model should perform better than the point extraction model. 
 
 
 ### Best case model {-}
@@ -845,9 +846,9 @@ $$\text{logit}(\gamma_{2, 1}^{(t)}) = \alpha_{2, 1} + \beta^r_{2, 1} r_t + \beta
 
 where $\beta^k_{i, j}$ is a coefficient for the $(i, j)^{th}$ transition probability and image band $k$.
 
-### Convolutional neural hierarchical model {-}
+### Convolutional hidden Markov model {-}
 
-The convolutional neural hierarchical maps an image chip $X^{(t)}$ centered on an animal's location at time $t$ to a transition probability matrix $\vec{\Gamma}}^{(t)}$.
+The convolutional hidden Markov model is a neural hierarchical model that maps an image chip $X^{(t)}$ centered on an animal's location at time $t$ to a transition probability matrix $\vec{\Gamma}^{(t)}$.
 This is a departure from the previous two models. 
 The input $X^{(t)}$ is a multidimensional array instead of a real number (in the best case model) or a numeric vector (containing RGB reflectances in the point extraction model).
 
@@ -858,7 +859,7 @@ This created a $3 \times 128 \times 128$ array for each point location along eac
 To illustrate the potential for including additional raster data in addition to imagery, an additional band was concatenated to each chip which contained zeros everywhere except for a $2 \times 2$ region in the center of the $128 \times 128$ grid, generating $4 \times 128 \times 128$ arrays. 
 In real applications, this might represent additional raster data relevant to movement -- the point is that the inputs need not be images per se.
 
-The convolutional hidden Markov model for animal movement mapped these $4 \times 128 \times 128$ image chips to $2 \times 2$ state transition probability matrices $\{ \vec{\Gamma}}^{(t)} \}_{t = 1}^T$ (Fig. \@ref(fig:traj-plot)). 
+The convolutional hidden Markov model for animal movement mapped these $4 \times 128 \times 128$ image chips to $2 \times 2$ state transition probability matrices $\{ \vec{\Gamma}^{(t)} \}_{t = 1}^T$ (Fig. \@ref(fig:conv-hmm)). 
 The architecture of the convolutional neural network is a simplified version of the AlexNet model that plays an important role in the history of deep learning in computer vision [@krizhevsky2014one], though more modern architectures might perform better. 
 Briefly, the input image is passed through a series of 2-dimensional convolutions, followed by nonlinear activation functions, followed by 2d max-pooling layers, creating a $64 \times 2 \times 2$ lower spatial resolution array with many "channels". 
 This three dimensional array is flattened to a one dimensional array, creating a vector of length $64 \times 2 \times 2$, which is then passed to a series of fully connected hidden layers to create a vector of length 4. 
@@ -872,8 +873,21 @@ knitr::include_graphics(here('fig', 'conv_hmm_edited.pdf'))
 
 ## Model comparisons {-}
 
+The predictive performance of the three models (best case, point extraction, and convolutional) was compared across a gradient of training set sizes. 
+This gradient included datasets that consisted of 16, 32, 64, 128, 256, 512, and 1024 simulated trajectories, each of which consisted of 50 timesteps. 
+The smaller datasets were subsets of the larger datasets.
+For each model/training set combination, predictive performance was evaluated using the out of sample log-likelihood, computed for the 1024 withheld validation trajectories using the forward algorithm [@patterson2017statistical]. 
+After using the validation data to compare models, the preferred model was retrained using the training and validation data, and final predictive performance was evaluated on the still withheld test set. 
+
 ## Results {-}
 
+As the training set increased in size to more than 64 trajectories, the convolutional movement model's performane exceeded the point extraction baseline (Fig. \@ref(fig:conv-hmm-perf)). 
+When the training set was relatively small (64 trajectories or fewer), the convolutional movement model performed worse than the point extraction baseline. 
+As expected, the best case model, which is correctly specified and has access to the "correct" input data (canopy height) always had the highest performance.
+
+```{r conv-hmm-perf, fig.cap='Model performance on withheld validation data. The x-axis is the number of movement trajectories in the training data. The y-axis shows the performance (predictive log-likelihood) on withheld validation data. Each point is the result of a simulation, and colored lines connect results for each model. ConvHMM is the convolutional hidden Markov model of animal movement.'}
+knitr::include_graphics(here('fig', 'convhmm-perf.pdf'))
+```
 
 
 
