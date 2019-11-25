@@ -715,5 +715,6 @@ h_psi0_df = pd.melt(h_psi0_df, id_vars=["row_idx", "par"]).rename(
     columns={"variable": "h_dim"}
 )
 
+# concatenate all route vectors into one data frame and save
 h_df = pd.concat((h_phi_df, h_gamma_df, h_p_df, h_psi0_df), axis=0, sort=True)
 h_df.to_csv("out/route_embeddings.csv", index=False)

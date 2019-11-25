@@ -69,7 +69,7 @@ def pt_Omega(rgb_pt, coefs):
 
 
 for n in train_data_sizes:
-    loaders = simutils.get_loaders(n, batch_size=8, shuffle_validation=False)
+    loaders = simutils.get_loaders(n, batch_size=2)
 
     # ConvNet
     convnet = simutils.ConvNet()

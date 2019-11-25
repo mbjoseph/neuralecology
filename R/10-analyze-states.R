@@ -1,7 +1,6 @@
 library(vroom)
 library(tidyverse)
 library(patchwork)
-library(plotly)
 library(sf)
 library(rmapshaper)
 library(ggrepel)
@@ -16,7 +15,7 @@ z_fs <- vroom('out/z_finite_sample.csv')
 bbs_routes <- read_csv('data/cleaned/clean_routes.csv')
 bbs_species <- read_csv('data/cleaned/bbs_species.csv')
 
-epsg <- 102008
+epsg <- 3174
 
 routes_sf <- st_read('data/cleaned/routes.shp') %>%
   st_transform(epsg)
@@ -231,9 +230,12 @@ cent_distances <- route_pts %>%
 
 st_crs(cent_distances$center_point) <- epsg
 
+cluster <- new_cluster(parallel::detectCores())
+
 dist_decay_df <- cent_distances %>%
   select(route_id, sp.bbs, z_mle, year, geometry, center_point, phi, gamma) %>%
-  partition(sp.bbs) %>%
+  group_by(sp.bbs) %>%
+  partition(cluster) %>%
   mutate(km_from_centroid = sf::st_distance(geometry, 
                                           center_point, 
                                           by_element = TRUE) / 1000) %>%
@@ -388,10 +390,6 @@ p3
 rel_width <- .45
 
 persist_dist_plot <- ((p0 + ggtitle("(a)")) | (dist_cor_plot + ggtitle("(b)"))) / (p3 + ggtitle("(c)")) / (p2 + ggtitle("(d)")) + plot_layout(heights = c(.5, 1, .6))
-# persist_dist_plot <- ((dist_cor_plot + ggtitle("(a)")) + (p3 + ggtitle("(c)")) + 
-#                         plot_layout(widths = c(rel_width, 1))) / 
-#   ((p0 + ggtitle("(b)")) + (p2 + ggtitle("(d)")) + plot_layout(widths = c(rel_width, 1))) + 
-#   plot_layout(heights = c(1, .8))
 persist_dist_plot
 
 persist_dist_plot %>%

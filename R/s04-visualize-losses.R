@@ -21,4 +21,5 @@ val_loss_plot <- loss %>%
   theme(legend.position = "none", 
         panel.grid.minor = element_blank()) + 
   scale_color_manual(values = c("darkorange1", "grey50", "darkorchid"))
+val_loss_plot
 ggsave("fig/convhmm-perf.pdf", val_loss_plot, width = 4, height = 3)

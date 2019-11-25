@@ -186,8 +186,25 @@ get_coords <- function(x, y) {
 
 
 
+get_num_traj <- function() {
+  trajectories <- lapply(file.path("out", "trajectories", 
+                                   c("test", "train", "validation")), 
+                         list.files, full.names = TRUE)
+  
+  # how many trajectories are there in the test, train, and validation set?
+  nfiles <- lapply(trajectories, length)
+  names(nfiles) <- c("test", "train", "validation")
+  unlist(nfiles)
+}
 
-simulate_trajectory <- function() {
+
+
+simulate_trajectory <- function(dummy_arg) {
+  
+  if (all(get_num_traj() == 1024)) {
+    return(NULL)
+  }
+  
   sim_id <- Sys.time() %>%
     format("%Y-%m-%d_%H%M%S") %>%
     paste(sep = "_", sample(letters, size = 8, replace = TRUE) %>% 
@@ -358,7 +375,7 @@ simulate_trajectory <- function() {
   df_path <- file.path(out_dir, "coords.csv")
   df_sf %>%
     as_tibble %>%
-    select(-geometry) %>%
+    dplyr::select(-geometry) %>%
     write_csv(df_path)
   
   sf_path <- file.path(out_dir, "coords.gpkg")
@@ -378,16 +395,26 @@ simulate_trajectory <- function() {
        out_files = list.files(out_dir, full.names = TRUE))
 }
 
-n_iter <- 4000
-pb <- txtProgressBar(max=n_iter, style = 3)
-sims <- vector(mode = "list", length = n_iter)
-for (i in 1:n_iter) {
-  sims[[i]] <- simulate_trajectory()
-  setTxtProgressBar(pb, i)
-}
-close(pb)
+cl <- parallel::makeCluster(parallel::detectCores())
+parallel::clusterEvalQ(cl, {
+  library(circular)
+  library(sf)
+  library(raster)
+  library(tidyverse)
+})
+parallel::clusterExport(cl, 
+                        c("chm", "rgb_mosaic", "gamma_12", "gamma_21", 
+                          "sim_step_size", "sim_radii", "stationary_probs", 
+                          "get_coords", "get_num_traj"))
+out <- pblapply(1:4000, simulate_trajectory, cl = cl)
+parallel::stopCluster(cl)
 
-# if any more than 1024 trajectories per dir, delete the extras
+
+
+# Sanity checks for simulated trajectories --------------------------------
+
+
+# 1. if any more than 1024 trajectories per dir, delete the extras
 lapply(file.path("out", "trajectories", c("test", "train", "validation")), 
        function(x) {
          f <- list.files(x, include.dirs = TRUE, full.names = TRUE)
@@ -399,24 +426,19 @@ lapply(file.path("out", "trajectories", c("test", "train", "validation")),
 
 
 
-# Ensure that all written trajectories have 50 image chips
-all_trajectories <- lapply(file.path("out", "trajectories", 
+# 2. all written trajectories have 50 image chips
+trajectories <- lapply(file.path("out", "trajectories", 
                                      c("test", "train", "validation")), 
                            list.files, full.names = TRUE)
 
-pblapply(unlist(all_trajectories), function(x) {
+lapply(unlist(trajectories), function(x) {
   chip_files <- list.files(path = x, pattern = "*.tiff")
   if (length(chip_files) != 50) {
     unlink(x, recursive = TRUE, force = TRUE)
   }
 })
 
-trajectories <- lapply(file.path("out", "trajectories", 
-                                 c("test", "train", "validation")), 
-                       list.files, full.names = TRUE)
-
-# how many trajectories are there in the test, train, and validation set?
-lapply(trajectories, length)
+stopifnot(all(get_num_traj() == 1024))
 
 
 # Generate an example plot for a movement trajectory ----------------------
@@ -492,19 +514,18 @@ bbox_df <-  sf::st_as_sf(data.table::rbindlist(bboxes)) %>%
          group = case_when(
            grepl("train", src) ~ "train", 
            grepl("test", src) ~ "test", 
-           grepl("valid", src) ~ "validation"
+           grepl("valid", src) ~ "validation", 
+           TRUE ~ "other"
          )) %>%
-  st_centroid %>%
   group_by(src, group) %>%
-  summarize(do_union=FALSE) %>%
-  st_cast("LINESTRING")
+  summarize()
 
 traj_plot <- bbox_df %>%
   ungroup %>%
   mutate(group = factor(tools::toTitleCase(group), 
                         levels = c("Train", "Validation", "Test"))) %>%
   ggplot(aes(color = group)) + 
-  geom_sf(size = .3) + 
+  geom_sf(size = .3, fill = NA) + 
   scale_color_manual("Partition", values = c("black", "dodgerblue", "red")) + 
   theme_minimal()
 traj_plot

@@ -862,7 +862,7 @@ In real applications, this might represent additional raster data relevant to mo
 The convolutional hidden Markov model for animal movement mapped these $4 \times 128 \times 128$ image chips to $2 \times 2$ state transition probability matrices $\{ \vec{\Gamma}^{(t)} \}_{t = 1}^T$ (Fig. \@ref(fig:conv-hmm)). 
 The architecture of the convolutional neural network is a simplified version of the AlexNet model that plays an important role in the history of deep learning in computer vision [@krizhevsky2014one], though more modern architectures might perform better. 
 Briefly, the input image is passed through a series of 2-dimensional convolutions, followed by nonlinear activation functions, followed by 2d max-pooling layers, creating a $64 \times 2 \times 2$ lower spatial resolution array with many "channels". 
-This three dimensional array is flattened to a one dimensional array, creating a vector of length $64 \times 2 \times 2$, which is then passed to a series of fully connected hidden layers to create a vector of length 4. 
+This three dimensional array is flattened to a one dimensional array, creating a vector of length $64 \times 2 \times 2$, which is then passed to a series of fully connected hidden layers with nonlinear activations and dropout regularization [@srivastava2014dropout] to create a vector of length 4. 
 This vector is reshaped to a $2 \times 2$ matrix, then a softmax transformation is applied row-wise to ensure that the row probabilities sum to one (as they should in a state transition probability matrix). 
 The resulting $2 \times 2$ matrix is the transition probability matrix $\vec{\Gamma}^{(t)}$, generated from the input $\vec{X}^{(t)}$.
 
@@ -870,6 +870,9 @@ The resulting $2 \times 2$ matrix is the transition probability matrix $\vec{\Ga
 knitr::include_graphics(here('fig', 'conv_hmm_edited.pdf'))
 ```
 
+In addition to using dropout to regularize the convolutional model, an $L_2$ penalty of $10^{-6}$ was also applied. 
+To further regularize the model, image augmentation (random horizontal and vertical flips) was also applied while training, though this might not be desirable in cases where directional orientation of the input image is important [@simonyan2014very]. 
+Image augmentation generally includes strategies to perturb data while training computer vision models in an attempt to generate a robust model (i.e., one that is insensitive to translation, orientation, hue, contrast, etc.).
 
 ## Model comparisons {-}
 

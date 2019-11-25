@@ -4,6 +4,7 @@ import glob
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import multiprocessing
 import pandas as pd
 import PIL
 import torch
@@ -132,24 +133,25 @@ def get_loaders(nmax, batch_size):
         "validation": TrajectoryDataset("../out/trajectories/validation"),
         "test": TrajectoryDataset("../out/trajectories/test")
     }
+    n_cpu = multiprocessing.cpu_count()
     dataloaders = {
         "train": torch.utils.data.DataLoader(
             datasets["train"],
             batch_size=batch_size,
             shuffle=True,
-            num_workers=6,
+            num_workers=n_cpu,
         ),
         "valid": torch.utils.data.DataLoader(
             datasets["validation"],
             batch_size=batch_size,
             shuffle=True,
-            num_workers=6,
+            num_workers=n_cpu,
         ),
         "test": torch.utils.data.DataLoader(
             datasets["test"],
             batch_size=batch_size,
             shuffle=True,
-            num_workers=6,
+            num_workers=n_cpu,
         ),
     }
     return dataloaders

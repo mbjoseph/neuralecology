@@ -15,14 +15,19 @@ Depends:
     assertthat,
     bbsBayes,
     bookdown,
+    circular,
     dplyr,
     elevatr,
     fasterize,
+    geoNEON,
     ggrepel,
+    ggspatial,
     here,
     knitr,
     lsa,
     lubridate,
+    lwgeom,
+    momentuHMM,
     multidplyr,
     parallel,
     patchwork,
@@ -47,6 +52,7 @@ Remotes:
     hadley/multidplyr,
     mbjoseph/bbsBayes@noninteractive,
     ropenscilabs/rnaturalearth,
-    thomasp85/patchwork
+    thomasp85/patchwork, 
+    NEONScience/NEON-geolocation/geoNEON
 Encoding: UTF-8
 LazyData: true

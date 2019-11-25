@@ -42,6 +42,7 @@ get_start_probs <- function(fit) {
 }
 
 save_output <- function(fit, name) {
+  dir.create("out/params", showWarnings = FALSE)
   get_gamma_params(fit) %>%
     bind_cols(get_vm_params(fit)) %>%
     bind_cols(get_fixef(fit)) %>%
