@@ -176,7 +176,7 @@ def fit(Model, input_name, loaders, n_epoch=1):
     valid_loss = []
     model = Model().to(device)
     optimizer = torch.optim.SGD(
-        model.parameters(), lr=0.0001, momentum=0.9, weight_decay=1e-6
+        model.parameters(), lr=0.0002, momentum=0.9, weight_decay=1e-5
     )
     for i in tqdm(range(n_epoch)):
         model.train()

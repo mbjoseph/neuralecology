@@ -16,8 +16,8 @@ val_loss_plot <- loss %>%
   ylab("Validation set performance") + 
   theme_minimal() + 
   annotate(geom = "text", x = 512, y = -139000, label = "Best case") + 
-  annotate(geom = "text", x = 512, y = -147000, label = "ConvHMM") + 
-  annotate(geom = "text", x = 512, y = -158500, label = "Point extraction") + 
+  annotate(geom = "text", x = 512, y = -146000, label = "ConvHMM") + 
+  annotate(geom = "text", x = 512, y = -157000, label = "Point extraction") + 
   theme(legend.position = "none", 
         panel.grid.minor = element_blank()) + 
   scale_color_manual(values = c("darkorange1", "grey50", "darkorchid"))
