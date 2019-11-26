@@ -31,7 +31,7 @@ class TrajectoryDataset(torch.utils.data.Dataset):
             A new instance of a trajectory dataset.
         """
         self.src_dir = src_dir
-        self.subdirs = glob.glob(os.path.join(src_dir, "*"))
+        self.subdirs = sorted(glob.glob(os.path.join(src_dir, "*")))
         self.chip_nxy = 128
         self.train = train
         if nmax:
@@ -116,6 +116,7 @@ class TrajectoryDataset(torch.utils.data.Dataset):
             ),
             "chm": chm.unsqueeze(-1),
             "rgb_pt": rgb_pt / 255,
+            "subdir": subdir
         }
         return sample, idx
 

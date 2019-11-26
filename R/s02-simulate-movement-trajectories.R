@@ -5,7 +5,7 @@ library(tidyverse)
 library(sf)
 library(pbapply)
 library(patchwork)
-
+library(ggspatial)
 
 # Load the CHM and RGB data -----------------------------------------------
 
@@ -13,6 +13,7 @@ chm <- raster("out/chm_mosaic.tif")
 mean(values(chm) > 30)
 chm[chm > 30] <- 30
 chm <- chm / cellStats(chm, max)
+writeRaster(chm, "out/scaled_chm_mosaic.tif")
 
 rgb_mosaic <- stack("out/rgb_mosaic.tif")
 
@@ -503,9 +504,12 @@ plot_traj <- function() {
   p1 + p2
 }
 
-
 trajplot <- plot_traj()
 ggsave("fig/example-trajectory.png", plot = trajplot, width = 4, height = 3)
+
+
+
+
 
 # Visualize all chips in the training data
 bbox_files <- list.files('out/trajectories', pattern = "chip_bboxes", 

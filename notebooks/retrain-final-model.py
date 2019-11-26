@@ -32,7 +32,7 @@ final_convnet = simutils.ConvNet().to(device)
 final_convnet.load_state_dict(torch.load("../out/params/ConvNet_1024_params.pt"))
 
 optimizer = torch.optim.SGD(
-    final_convnet.parameters(), lr=0.0001, momentum=0.9, weight_decay=1e-5
+    final_convnet.parameters(), lr=0.00001, momentum=0.9, weight_decay=1e-5
 )
 for i in tqdm(range(n_epoch)):
     final_convnet.train()
@@ -67,4 +67,4 @@ fig = plt.figure()
 simutils.plot_loss(train_loss, c="red")
 simutils.plot_loss(test_loss, c="blue")
 plt.ylabel("Loss")
-fig.savefig(f"retrained_loss.png")
+fig.savefig("retrained_loss.png")
