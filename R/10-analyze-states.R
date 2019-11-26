@@ -290,17 +290,20 @@ pt_alpha <- .5
 pt_size <- .5
 
 p0 <- dec_df %>%
-  ggplot(aes(phid_cor, gammad_cor)) + 
+  ggplot(aes(y = phid_cor, x = gammad_cor)) + 
   geom_point(alpha = pt_alpha / 2, size = pt_size) + 
   geom_hline(yintercept = 0, linetype = 'dashed', color = 'grey') + 
   geom_vline(xintercept = 0, linetype = 'dashed', color = 'grey') + 
   theme_minimal() + 
-  xlab("Persistence coefficient") + 
-  ylab("Colonization coefficient") + 
-  geom_point(data = to_label, size = pt_size * 2, alpha = min(c(1, pt_alpha*3))) + 
+  ylab("Persistence coefficient") + 
+  xlab("Colonization coefficient") + 
+  geom_point(data = to_label, 
+             size = pt_size * 2.5, 
+             alpha = min(c(1, pt_alpha*3))) + 
   theme(panel.grid.minor = element_blank()) + 
-  geom_text_repel(aes(label = english), data = to_label, size = 2.5) + 
-  coord_flip()
+  geom_text_repel(aes(label = english), data = to_label, size = 2.7) + 
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 3)) + 
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 3))
 p0
 
 
@@ -315,7 +318,9 @@ dist_cor_plot <- dec_df %>%
   xlab("Mean occupancy") + 
   ylab("Coefficient") + 
   theme(panel.grid.minor = element_blank()) + 
-  facet_grid(Label~., scales = 'free_y')
+  facet_grid(Label~., scales = 'free_y') + 
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 4)) + 
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 4))
 dist_cor_plot
 
 dec_df %>%

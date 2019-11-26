@@ -64,7 +64,7 @@ trans_plot <- transition_df %>%
         panel.grid.minor = element_blank()) + 
   scale_color_manual(values = c("black", "red")) + 
   scale_y_continuous(breaks = seq(0, 1, by = .25)) + 
-  ggtitle("A")
+  ggtitle("(a)")
 trans_plot
 
 
@@ -95,7 +95,7 @@ step_size_plot <- gamma_density_df %>%
   annotate("text", x = 7, y = .6, label = "Foraging", color = "red") + 
   annotate("text", x = 15, y = .15, label = "In transit", color = "black") + 
   theme(legend.position = "none") + 
-  ggtitle("B")
+  ggtitle("(b)")
 step_size_plot
 
 
@@ -157,7 +157,7 @@ vm_plot <- vm_df %>%
                      expression(paste(3*pi/2)))) + 
   coord_equal() + 
   scale_color_manual(values = c("red", "black")) +
-  ggtitle("C")
+  ggtitle("(c)")
 vm_plot  
 
 
@@ -443,64 +443,69 @@ stopifnot(all(get_num_traj() == 1024))
 
 # Generate an example plot for a movement trajectory ----------------------
 
-trajdir <- sample(trajectories[[1]], size = 1)
+plot_traj <- function() {
+  trajdir <- sample(trajectories[[1]], size = 1)
+  
+  sim_df <- file.path(trajdir, "coords.gpkg") %>%
+    st_read
+  
+  p1 <- sim_df %>%
+    ggplot(aes(x, y)) + 
+    geom_raster(data = chm %>%
+                  crop(sim_df) %>%
+                  as.data.frame(xy = TRUE) %>%
+                  as_tibble, 
+                aes(fill = chm_mosaic), 
+                alpha = .9) + 
+    geom_segment(aes(x = x, y = y, xend = lead(x), yend = lead(y), 
+                     color = state),
+                 arrow = arrow(length = unit(0.03, "npc"))) + 
+    scale_fill_viridis_c("Canopy\nheight") + 
+    theme_minimal() + 
+    scale_color_manual(values = c("red", "black"), "State") + 
+    coord_equal() + 
+    theme(axis.text = element_blank(), panel.grid = element_blank(), 
+          legend.position = "none") + 
+    xlab("") + 
+    ylab("") + 
+    ggtitle("(a)")
+  p1
+  
+  rgb_crop <- stack(file.path(trajdir, "rgb_crop.tif"))
+  chips <- file.path(trajdir, "chip_bboxes.gpkg") %>%
+    st_read %>%
+    mutate(id = 1:n()) %>%
+    split(.$id) %>%
+    pblapply(function(x) {
+      rgb_crop %>%
+        crop(x) 
+    })
+  
+  chip_mosaic <- chips
+  names(chip_mosaic)[1:2] <- c("x", "y")
+  chip_mosaic$fun <- mean
+  chip_mosaic$na.rm <- TRUE
+  final_chip_mosaic <- do.call(mosaic, chip_mosaic)
+  
+  p2 <- ggplot() + 
+    ggspatial::layer_spatial(data = rgb_crop, alpha = .3) + 
+    ggspatial::layer_spatial(data = final_chip_mosaic) + 
+    theme_minimal() + 
+    # geom_sf(data = summarize(sim_df, do_union=FALSE) %>%
+    #           st_cast('LINESTRING'), size = .1, color = "white") + 
+    # geom_sf(data = sim_df, color = "white", size = .1, alpha = .1) +
+    theme(axis.text = element_blank(), 
+          panel.grid = element_blank(), 
+          legend.position = 'none') + 
+    ggtitle("(b)")
+  p2
+  
+  p1 + p2
+}
 
-sim_df <- file.path(trajdir, "coords.gpkg") %>%
-  st_read
 
-
-p1 <- sim_df %>%
-  ggplot(aes(x, y)) + 
-  geom_raster(data = chm %>%
-                crop(sim_df) %>%
-                as.data.frame(xy = TRUE) %>%
-                as_tibble, 
-              aes(fill = chm_mosaic), 
-              alpha = .9) + 
-  geom_segment(aes(x = x, y = y, xend = lead(x), yend = lead(y), 
-                   color = state),
-               arrow = arrow(length = unit(0.03, "npc"))) + 
-  scale_fill_viridis_c("CHM") + 
-  theme_minimal() + 
-  scale_color_manual(values = c("red", "black"), "State") + 
-  coord_equal() + 
-  theme(axis.text = element_blank(), panel.grid = element_blank(), 
-        legend.position = "left") + 
-  xlab("") + 
-  ylab("") + 
-  ggtitle("A")
-p1
-
-chips <- file.path(trajdir, "chip_bboxes.gpkg") %>%
-  st_read %>%
-  mutate(id = 1:n()) %>%
-  split(.$id) %>%
-  pblapply(function(x) {
-    stack(file.path(trajdir, "rgb_crop.tif")) %>%
-      crop(x) 
-  })
-
-chip_mosaic <- chips
-names(chip_mosaic)[1:2] <- c("x", "y")
-chip_mosaic$fun <- mean
-chip_mosaic$na.rm <- TRUE
-final_chip_mosaic <- do.call(mosaic, chip_mosaic)
-
-p2 <- ggplot() + 
-  ggspatial::layer_spatial(data = final_chip_mosaic) + 
-  theme_minimal() + 
-  geom_sf(data = summarize(sim_df, do_union=FALSE) %>%
-            st_cast('LINESTRING'), size = .1, color = "white") + 
-  geom_sf(data = sim_df, color = "white", size = .4) + 
-  theme(axis.text = element_blank(), 
-        panel.grid = element_blank(), 
-        legend.position = 'none') + 
-  ggtitle("B")
-p2
-
-p1 + p2
-
-
+trajplot <- plot_traj()
+ggsave("fig/example-trajectory.png", plot = trajplot, width = 4, height = 3)
 
 # Visualize all chips in the training data
 bbox_files <- list.files('out/trajectories', pattern = "chip_bboxes", 

@@ -20,14 +20,19 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 
-n_epoch = 2
+n_epoch = 20
 loaders = simutils.get_loaders(1024, batch_size=2)
 
 train_loss = []
 test_loss = []
+
 final_convnet = simutils.ConvNet().to(device)
+
+# load pre-trained model (that was trained on training data, but not eval data)
+final_convnet.load_state_dict(torch.load("../out/params/ConvNet_1024_params.pt"))
+
 optimizer = torch.optim.SGD(
-    final_convnet.parameters(), lr=0.0001, momentum=0.9, weight_decay=1e-6
+    final_convnet.parameters(), lr=0.0001, momentum=0.9, weight_decay=1e-5
 )
 for i in tqdm(range(n_epoch)):
     final_convnet.train()
@@ -52,6 +57,8 @@ for i in tqdm(range(n_epoch)):
         tout = final_convnet(txy["chips"].to(device))
         loss = -torch.mean(simutils.get_loglik(txy, tout))
         test_loss.append(float(loss.detach()))
+
+torch.save(final_convnet.state_dict(), "../out/params/final-conv-hmm.pt")
 
 train_loss = np.array(train_loss)
 test_loss = np.array(test_loss)

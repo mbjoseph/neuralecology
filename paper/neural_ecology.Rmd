@@ -157,7 +157,7 @@ This class of models inherits the flexibility and scalability of neural networks
 Construction of such models from existing hierarchical models is straightforward.
 For example, one can propose neural variants of occupancy models [@mackenzie2002estimating], dynamic occupancy models [@mackenzie2003estimating; @royle2007bayesian], N-mixture models [@royle2004n], mark-recapture models [@jolly1965explicit; @calvert2009hierarchical], and other hidden Markov models such as those used to understand animal movement [@patterson2009classifying; @langrock2012flexible; @patterson2017statistical]. 
 Output activation functions can be determined from inverse link functions, e.g., sigmoid (inverse logit) activations for probabilities, and loss functions can be constructed from the negative log likelihoods (see Appendix S1 in Supporting Information for example model specifications). 
-Furthermore, neural architectures specialized to operate on structured data (e.g., convolutional neural networks for gridded data) can be readily integrated into such models (see Appendix S2 in Supporting Information).
+Furthermore, neural architectures specialized to operate on structured data (e.g., convolutional neural networks for gridded data) can be readily integrated into such models (see Appendix S2 in Supporting Information for an example of a convolutional neural hierarchical model of animal movement).
 To provide a concrete empirical use case, a neural dynamic occupancy model is developed for extinction and colonization dynamics of North American bird communities.
 
 ## Case study {-}
@@ -331,7 +331,7 @@ if (params$preprint) knitr::include_graphics(fig_src_files[4])
 
 The majority (`r round(mean(dec_df$phid_cor < 0), 2) * 100`%) of common species were less likely to persist at routes that were distant from their estimated BBS range centroids. 
 Similarly, `r round(mean(dec_df$gammad_cor < 0), 2) * 100`% of common species were less likely to colonize routes distant from their BBS range centroids. 
-There were examples of species with all possible combinations of positive and negative distance coefficients for persistence and colonization (Fig. \@ref(`r ifelse(params$preprint, "fig:persist-dist", "fig:endfig4")`)a).
+There were examples of species with positive and negative distance coefficients for persistence and colonization (Fig. \@ref(`r ifelse(params$preprint, "fig:persist-dist", "fig:endfig4")`)a).
 Negative relationships were most apparent for common species that occupied a large fraction of BBS routes (Fig. \@ref(`r ifelse(params$preprint, "fig:persist-dist", "fig:endfig4")`)b). 
 Results for representative species are displayed in Fig. \@ref(`r ifelse(params$preprint, "fig:persist-dist", "fig:endfig4")`)c-d.
 
@@ -372,13 +372,14 @@ highest_slope_species_sciname <- bbs_species %>%
 The breeding bird survey case study indicates that neural hierarchical models can outperform simpler models. 
 Notably, the final model was performant both quantitatively and qualitatively, detecting population increases and range expansions that are consistent with prior work.
 The case study extends previous analyses of persistence probabilities at range edges [@royle2007bayesian], indicating that common species tend to have higher persistence and colonization probabilities at routes close to their BBS range centroid. 
-Yet, interpreting this result is complicated by irregular range geometry, which can lead to centroids that lie outside of a species range, and incomplete sampling of species ranges, which can result in a mismatch between actual and estimated ranges [@sagarin2002abundant; @fortin2005species; @dallas2017species; @knouft2018appropriate].
+Yet, interpreting this result is complicated by irregular range geometry which can lead to centroids that near the edge (or even outside) of a species range, and divergence between actual and estimated ranges due to incomplete sampling [@sagarin2002abundant; @fortin2005species; @dallas2017species; @knouft2018appropriate].
 Additional complexity is apparent in Fig. \@ref(`r ifelse(params$preprint, "fig:persist-dist", "fig:endfig4")`)c, which indicates that gradients in colonization and persistence may not be isotropic (the same in every direction).
 With those caveats, the results are broadly consistent with a theoretical expectation that range boundaries can arise from gradients in local extinction and colonization rates [@holt2000alternative].
 
-The case study used a gated recurrent neural network architecture to capitalize on temporal structure [@chung2014empirical], and architectures designed for other data structures present other opportunities for ecological applications. 
+The case study used a gated recurrent neural network architecture to capitalize on temporal structure [@chung2014empirical], and architectures designed for other data structures present additional opportunities for ecological applications. 
 For example, neural hierarchical models could be used to couple a convolutional neural network observation model for camera trap images [@norouzzadeh2018automatically; @tabak2019machine] with an ecological process model that describes animal density, movement, or community composition [@burton2015wildlife]. 
-Other ecological data structured on regular grids such as modeled climate data, remotely sensed Earth observations, and even 96 well microplates also might use convolutional neural network architectures [@rawat2017deep]. 
+Gridded data such as modeled climate data, remotely sensed Earth observations, and even 96 well microplates also might use convolutional neural network architectures [@rawat2017deep]. 
+Appendix S2 provides a concrete example where gridded data (aerial imagery) are mapped to a state transition matrix of a hidden Markov model. 
 In addition, many ecological datasets exhibit graph structure related to phylogenies, social networks, or network-like spatial structure. 
 While it is possible to adapt convolutional neural networks to operate on distance matrices computed from graphs [@fioravanti2018phylogenetic], there are a variety of graph representation learning approaches that provide embeddings for nodes that encode network structure and node attributes [@hamilton2017inductive; @cai2018comprehensive]. 
 
@@ -389,14 +390,21 @@ This is particularly relevant for extensions of the BBS case study, given the vo
 The key strategy providing this scalability is stochastic optimization that uses mini-batches - small subsets of a larger dataset - that provide a noisy estimate of model performance and partial derivatives that can be used during training without ever needing to load the entire dataset into memory [@ruder2016overview]. 
 This could be useful as a way to scale models that integrate BBS, eBird, and other data [@ngiam2011multimodal; @pacifici2017integrating; @zipkin2017integrating; @MistNet2]. 
 
+Though neural hierarchical models can perform well in the large data regime, they might be overparameterized in a small data setting. 
+For this reason, performance comparisons with simpler baseline models are useful, especially if those simpler models are easy to implement and understand. 
+Approaches familiar to ecologists such as k-fold cross validation and (to a lesser extent) information criteria such as the Akaike Information Criterion (AIC) have been used with neural networks, but such approaches are less common than cross-validation with training, validation, and test partitions of the data [@anderson2004model; @jiang2016displacement; @ran2017parameter]. 
+In large data settings, considerable computational resources are required for training retraining the same model many times might make k-fold cross validation infeasible.
+As a practical matter, even if a neural hierarchical model demonstrates superior predictive performance, a simpler model might be preferred if interpretability and/or explainability is a high priority, as it might be in a decision-making context [@rudin2018please]. 
+
+Neural networks have a reputation for being "black-box" models.
+However, the intrepretation and explanation of such models is an active area of research [@roscher2019explainable]. 
+Interpretations map abstract concepts to domains that humans can make sense of, e.g., mapping neural network parameters to species identity or spatial location [@montavon2018methods].
+Explanations are collections of features in such a domain that contributed to a prediction [@montavon2018methods], e.g., sensitivity of model output to perturbations of the input [@olden2002illuminating; @gevrey2003review]. 
+
 Looking ahead, in a forecasting or decision-making setting, it would be important to estimate both aleatoric uncertainty (arising from noise in an observation process) and epistemic uncertainty (arising from uncertainty in a model and its parameters) [@clark2001ecological; @kendall2017uncertainties].
 Recent advances in accounting for uncertainty in neural network parameter estimates and architectures could be applied in future work. 
 Approaches include "Bayes by backpropagation" [@blundell2015weight], normalizing flows for variational approximations [@kingma2016improved], adversarial training [@lakshminarayanan2017simple], methods that use dropout or its continuous relaxation [@gal2017concrete], and ensemble approaches [@mcdermott2017ensemble]. 
-In a decision-making context, interpretability and explainability also stands out as a key topic [@rudin2018please]. 
-
-Neural networks have a reputation for being "black-box" models, but recent work provides tools that facilitate the interpretation and explanation of such models [@roscher2019explainable]. 
-Interpretations map abstract concepts to domains that humans can make sense of, e.g., mapping neural network parameters to species identity or spatial location [@montavon2018methods].
-Explanations are collections of features in such a domain that contributed to a prediction [@montavon2018methods], e.g., sensitivity of model output to perturbations of the input [@olden2002illuminating; @gevrey2003review]. 
+These methods can also help explain neural networks, e.g., to probabilistically estimate sensitivity to model inputs to random masking [@chang2017interpreting], or to decompose predictive uncertainty into component parts [@thiagarajan2019understanding]. 
 
 The potential for combining neural networks with mechanistic models was recognized more than thirty years ago [@psichogios1992hybrid; @meade1994numerical; @lagaris1998artificial]. 
 This potential is more easily realized today due to methodological spillover from deep learning into the natural sciences, but also increases in computing power, availability of ecological data, and the proliferation of educational content for quantitative ecology and machine learning.
@@ -773,7 +781,7 @@ $$\text{logit}(\gamma_{2, 1}^{(t)}) = 6 - 40x_t,$$
 where $x_t$ is the scaled canopy height at an animal's location in time $t$ (Fig. \@ref(fig:movement-distributions)A).
 This fully specifies the state transition matrix, because the rows must sum to one, implying for example that $\gamma_{1, 1}^{(t)} = 1 - \gamma_{1, 2}^{(t)}$.
 
-```{r movement-distributions, fig.cap='Panel A shows the true relationship between scaled canopy height (x-axis) and state transition probabilities in the simulation. Panels B and C show the densities of step sizes (B) and turn angles in radians (C) used in the simulation, colored by behavioral state.'}
+```{r movement-distributions, fig.cap='Panel A shows the true relationship between scaled canopy height (x-axis) and state transition probabilities in the simulation. Panels B and C show the densities of step sizes (B) and turn angles in radians (C) used in the simulation, colored by behavioral state.', out.width = "300px"}
 knitr::include_graphics(here('fig', 'movement-distributions'))
 ```
 
@@ -852,12 +860,17 @@ The convolutional hidden Markov model is a neural hierarchical model that maps a
 This is a departure from the previous two models. 
 The input $X^{(t)}$ is a multidimensional array instead of a real number (in the best case model) or a numeric vector (containing RGB reflectances in the point extraction model).
 
-
 To generate image chip input arrays, square crops from the aerial RGB imagery were created centered on each simulated location. 
 The spatial footprint of each chip was 128 $\times$ 128 pixels ($\approx$ 13 m $\times$ 13 m). 
-This created a $3 \times 128 \times 128$ array for each point location along each trajectory (where the three channels correspond to reflectance values in the red, green, and blue spectral bands).
+This created a $3 \times 128 \times 128$ array for each point location along each trajectory, where the three channels correspond to reflectance values in the red, green, and blue spectral bands  (Fig. \@ref(fig:example-trajectory)).
 To illustrate the potential for including additional raster data in addition to imagery, an additional band was concatenated to each chip which contained zeros everywhere except for a $2 \times 2$ region in the center of the $128 \times 128$ grid, generating $4 \times 128 \times 128$ arrays. 
 In real applications, this might represent additional raster data relevant to movement -- the point is that the inputs need not be images per se.
+
+
+```{r example-trajectory, fig.cap='An example of a simulated movement trajectory. Panel (a) shows the true states and scaled canopy height, which determines the state transition probabilities. Red indicates that the animal is foraging, black indicates that it is in transit. The background color map shows the scaled canopy height. Panel (b) shows 128 by 128 image chips centered on point locations in the high resolution aerial imagery, which are used as inputs in the convolutional hidden Markov model of animal movement. Camera imagery outside of these image chips is shown in a lighter shade.', out.width="450px"}
+knitr::include_graphics(here('fig', 'example-trajectory.png'))
+```
+
 
 The convolutional hidden Markov model for animal movement mapped these $4 \times 128 \times 128$ image chips to $2 \times 2$ state transition probability matrices $\{ \vec{\Gamma}^{(t)} \}_{t = 1}^T$ (Fig. \@ref(fig:conv-hmm)). 
 The architecture of the convolutional neural network is a simplified version of the AlexNet model that plays an important role in the history of deep learning in computer vision [@krizhevsky2014one], though more modern architectures might perform better. 
