@@ -467,7 +467,7 @@ if (!params$preprint) knitr::include_graphics(fig_src_files[6])
 
 \setcounter{figure}{0}
 \makeatletter 
-\renewcommand{\thefigure}{S\@arabic\c@figure}
+\renewcommand{\thefigure}{S1.\@arabic\c@figure}
 \makeatother
 
 This appendix includes example specifications for neural occupancy, N-mixture, and hidden Markov models. 
@@ -720,7 +720,7 @@ As an aside, one can specify such models in terms of the complete data likelihoo
 
 \setcounter{figure}{0}
 \makeatletter 
-\renewcommand{\thefigure}{S\@arabic\c@figure}
+\renewcommand{\thefigure}{S2.\@arabic\c@figure}
 \makeatother
 
 This appendix describes an animal movement model parameterized by a convolutional neural network, including simulations ot explore how the amount of training data affects performance relative to simpler baseline models. 
@@ -867,10 +867,9 @@ To illustrate the potential for including additional raster data in addition to 
 In real applications, this might represent additional raster data relevant to movement -- the point is that the inputs need not be images per se.
 
 
-```{r example-trajectory, fig.cap='An example of a simulated movement trajectory. Panel (a) shows the true states and scaled canopy height, which determines the state transition probabilities. Red indicates that the animal is foraging, black indicates that it is in transit. The background color map shows the scaled canopy height. Panel (b) shows 128 by 128 image chips centered on point locations in the high resolution aerial imagery, which are used as inputs in the convolutional hidden Markov model of animal movement. Camera imagery outside of these image chips is shown in a lighter shade.', out.width="450px"}
+```{r example-trajectory, fig.cap='An example of a simulated movement trajectory. Panel (a) shows the true states and scaled canopy height, which determines the state transition probabilities. Red indicates that the animal is foraging, black indicates that it is in transit. The background color map shows the scaled canopy height. Panel (b) shows 128 by 128 image chips centered on point locations in the high resolution aerial imagery, which are used as inputs in the convolutional hidden Markov model of animal movement. Camera imagery outside of these image chips is shown in a lighter shade.', out.width="550px"}
 knitr::include_graphics(here('fig', 'example-trajectory.png'))
 ```
-
 
 The convolutional hidden Markov model for animal movement mapped these $4 \times 128 \times 128$ image chips to $2 \times 2$ state transition probability matrices $\{ \vec{\Gamma}^{(t)} \}_{t = 1}^T$ (Fig. \@ref(fig:conv-hmm)). 
 The architecture of the convolutional neural network is a simplified version of the AlexNet model that plays an important role in the history of deep learning in computer vision [@krizhevsky2014one], though more modern architectures might perform better. 
@@ -887,6 +886,9 @@ In addition to using dropout to regularize the convolutional model, an $L_2$ pen
 To further regularize the model, image augmentation (random horizontal and vertical flips) was also applied while training, though this might not be desirable in cases where directional orientation of the input image is important [@simonyan2014very]. 
 Image augmentation generally includes strategies to perturb data while training computer vision models in an attempt to generate a robust model (i.e., one that is insensitive to translation, orientation, hue, contrast, etc.).
 
+In contrast to more common applications of convolutional neural networks where individual images are labeled (e.g., with bounding boxes and species identities in camera trap imagery), the observed movement trajectories (step sizes and turning angles) can be thought of as analogous to implicit "labels" for this convolutional hidden Markov model. 
+More broadly, this convolutional animal movement model can be thought of as just another hidden Markov model, but with raster-valued inputs. 
+
 ## Model comparisons {-}
 
 The predictive performance of the three models (best case, point extraction, and convolutional) was compared across a gradient of training set sizes. 
@@ -900,11 +902,26 @@ After using the validation data to compare models, the preferred model was retra
 As the training set increased in size to more than 64 trajectories, the convolutional movement model's performane exceeded the point extraction baseline (Fig. \@ref(fig:conv-hmm-perf)). 
 When the training set was relatively small (64 trajectories or fewer), the convolutional movement model performed worse than the point extraction baseline. 
 As expected, the best case model, which is correctly specified and has access to the "correct" input data (canopy height) always had the highest performance.
+But, restricting attention to models that only have access to the RGB imagery, the convolutional movmeent model was preferred. 
 
 ```{r conv-hmm-perf, fig.cap='Model performance on withheld validation data. The x-axis is the number of movement trajectories in the training data. The y-axis shows the performance (predictive log-likelihood) on withheld validation data. Each point is the result of a simulation, and colored lines connect results for each model. ConvHMM is the convolutional hidden Markov model of animal movement.'}
 knitr::include_graphics(here('fig', 'convhmm-perf.pdf'))
 ```
 
+Final predictive checks on the withheld test set indicated that the convolutional model was able to estimate the true state transition probabilities fairly well.
+Transition probabilities from "in transit" ($s_t=1$) to "foraging" ($s_t=2$) were not captured as well as transitions from "foraging" ($s_t=2$) to "in transit" ($s_t=1$) (Fig. \@ref(fig:transition-densities)).
+In particular, the estimated distribution of transition probabilities was bimodal, but not as sharply peaked as the distribution of true transition probabilities.
+
+```{r transition-densities, fig.cap='Joint densities of true (x-axis) and estimated (y-axis) state transition probabilities in the final convolutional movement model. Panel (a) shows the distribution for $\\gamma_{1, 2}$ (transitions to "foraging"), with marginal histograms for the true and estimated probabilities. Panel (b) shows the same for $\\gamma_{2, 1}$ (transitions to "in transit"). '}
+knitr::include_graphics(here('fig', 'transition-densities.png'))
+```
+
+Last, to provide a qualitative sense of what the final model had learned, test set image chips with the highest predicted transition probabilities are visualized in Fig. \@ref(fig:top-prob-chips).
+Consistent with the underlying generative model, image chips centered on tree canopies were associated with the highest probabilities of transitioning into the "foraging" state, and image chips centered on bare ground (often with intermittent rocks) were associated with the highest probabilities of transitioning into the "in transit" state.
+
+```{r top-prob-chips, fig.cap='Top eight test set image chips with the highest probabilities of transitioning into \"in transit\" from \"foraging\" (a), and from \"in transit\" to \"foraging\" (b).', out.width="450px"}
+knitr::include_graphics(here('fig', 'top-prob-chips.png'))
+```
 
 
 \clearpage
@@ -913,7 +930,7 @@ knitr::include_graphics(here('fig', 'convhmm-perf.pdf'))
 
 \setcounter{figure}{0}
 \makeatletter 
-\renewcommand{\thefigure}{S\@arabic\c@figure}
+\renewcommand{\thefigure}{S3.\@arabic\c@figure}
 \makeatother
 
 This appendix includes details on the structure and implementation of the baseline and neural dynamic occupancy models for breeding bird survey data. 

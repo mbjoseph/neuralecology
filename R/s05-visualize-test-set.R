@@ -3,31 +3,46 @@ library(raster)
 library(ggspatial)
 library(sf)
 library(patchwork)
+library(ggExtra)
+library(cowplot)
 
 chm <- raster("out/scaled_chm_mosaic.tif")
 
+theme_set(theme_minimal() + 
+            theme(panel.grid.minor = element_blank()))
 
 test_preds <- read_csv("notebooks/test-set-checks.csv") %>%
-  mutate(gamma_12 = plogis(6 - 40 * chm), 
-         gamma_21 = plogis(-6 + 40 * chm),
-         g12_diff = pred_gamma_12 - gamma_12, 
-         g21_diff = pred_gamma_21 - gamma_21)
+  mutate(gamma_12 = plogis(-6 + 40 * chm), 
+         gamma_21 = plogis(6 - 40 * chm))
 
-test_preds %>%
-  ggplot(aes(gamma_12, pred_gamma_12)) + 
-  geom_jitter(alpha = .1, width = .03, height = 0, size = .5) + 
-  geom_abline(linetype = "dashed") + 
+# final model switched state order (so we plot true gamma_12 vs. estimated gamma_21)
+# (there are no constraints to guarantee that state 1 or 2 is "in transit" or "foraging")
+p1 <- test_preds %>%
+  ggplot(aes(gamma_12, pred_gamma_21)) + 
+  geom_point(color = NA) +
+  stat_density_2d(geom = "raster", aes(fill = stat(density)), contour = FALSE) +
+  scale_fill_viridis_c(option = "A") +
   xlab(expression(paste("True ", gamma["1,2"]))) + 
-  ylab(expression(paste("Estimated ", gamma["1,2"])))
+  ylab(expression(paste("Estimated ", gamma["1,2"]))) + 
+  theme(legend.position = "none") + 
+  coord_equal() + 
+  ggtitle("(a)")
+p1m <- ggMarginal(p1, type = "histogram")
 
-test_preds %>%
-  ggplot(aes(gamma_21, pred_gamma_21)) + 
-  geom_jitter(alpha = .1, width = .03, height = 0, size = .5) + 
-  geom_abline(linetype = "dashed") + 
+p2 <- test_preds %>%
+  ggplot(aes(gamma_21, pred_gamma_12)) + 
+  geom_point(color = NA) +
+  stat_density_2d(geom = "raster", aes(fill = stat(density)), contour = FALSE) +
+  scale_fill_viridis_c(option = "A") +
   xlab(expression(paste("True ", gamma["2,1"]))) + 
-  ylab(expression(paste("Estimated ", gamma["2,1"])))
+  ylab(expression(paste("Estimated ", gamma["2,1"]))) + 
+  theme(legend.position = "none") + 
+  coord_equal() + 
+  ggtitle("(b)")
+p2m <- ggMarginal(p2, type = "histogram")
 
-
+transition_densities <- cowplot::plot_grid(p1m, p2m)
+ggsave("fig/transition-densities.png", plot = transition_densities, width = 6, height = 3.5)
 
 # Plot some rows of interest -----------------------------------------------
 plot_df_row <- function(df) {
@@ -36,23 +51,14 @@ plot_df_row <- function(df) {
   dir <- file.path("out", "trajectories", "test", df$directory)
   chip <- dir %>%
     list.files(pattern = sprintf("%03d", df$t), full.names = TRUE) %>%
-    grep("tiff$", ., value = TRUE) %>%
+    grep("chip.*.tiff$", ., value = TRUE) %>%
     raster::stack()
   bbox <- st_read(file.path(dir, "chip_bboxes.gpkg"))[df$t, ]
-  chm_chip <- raster::crop(chm, bbox)
+  
   rgb_plot <- ggplot() + 
     ggspatial::layer_spatial(data = chip) + 
     theme_void()
-  
-  # chm_plot <- ggplot() + 
-  #   geom_raster(data = as_tibble(as.data.frame(chm_chip, xy = TRUE)), 
-  #               aes(x, y, fill=scaled_chm_mosaic)) + 
-  #   theme_void() +
-  #   scale_fill_viridis_c(limits = c(0, 1), 
-  #                        oob = scales::squish) +
-  #   theme(legend.position = "none") +
-  #   coord_equal()
-  rgb_plot #/ chm_plot
+  rgb_plot
 }
 
 
@@ -80,21 +86,20 @@ test_preds %>%
 
 
 plots <- test_preds %>%
-  top_n(16, pred_gamma_12) %>%
+  top_n(8, pred_gamma_12) %>%
   arrange(pred_gamma_12) %>%
   mutate(id = 1:n()) %>%
   split(.$id) %>%
   lapply(plot_df_row)
-p1 <- wrap_plots(plots) + plot_annotation(title="(a)")
-
+plots[[1]] <- plots[[1]] + ggtitle("(a) Highest Pr(transition to \"in transit\")")
 
 plots_21 <- test_preds %>%
-  top_n(16, pred_gamma_21) %>%
+  top_n(8, pred_gamma_21) %>%
   arrange(pred_gamma_21) %>%
   mutate(id = 1:n()) %>%
   split(.$id) %>%
   lapply(plot_df_row)
-p2 <- wrap_plots(plots_21) + plot_annotation(title='(b)')
+plots_21[[1]] <- plots_21[[1]] + ggtitle("(b) Highest Pr(transition to \"foraging\")")
 
-p1/p2
-
+top_prob_plots <- wrap_plots(c(plots, plots_21), nrow = 2)
+ggsave("fig/top-prob-chips.png", top_prob_plots, width = 8, height = 2)

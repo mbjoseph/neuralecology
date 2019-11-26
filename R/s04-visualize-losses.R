@@ -5,9 +5,20 @@ loss <- list.files("out/params", pattern = "loss_df", full.names = TRUE) %>%
   bind_rows %>%
   pivot_longer(ends_with("loss"))
 
-val_loss_plot <- loss %>%
+loss_df <- loss %>%
   group_by(name, n) %>%
-  summarize(valid_loss = sum(value)) %>%
+  summarize(valid_loss = sum(value))
+
+label_df <- loss_df %>%
+  ungroup %>%
+  filter(n == 512) %>%
+  mutate(name = case_when(
+    .$name == "baseline_pt_loss" ~ "Point extraction", 
+    .$name == "bestcase_loss" ~ "Best case", 
+    .$name == "conv_loss" ~ "ConvHMM"
+  ))
+
+val_loss_plot <- loss_df %>%
   ggplot(aes(n, -valid_loss, color = name)) + 
   geom_line(alpha = .7) + 
   geom_point() + 
@@ -15,9 +26,9 @@ val_loss_plot <- loss %>%
   xlab("Training set size") + 
   ylab("Validation set performance") + 
   theme_minimal() + 
-  annotate(geom = "text", x = 512, y = -139000, label = "Best case") + 
-  annotate(geom = "text", x = 512, y = -146000, label = "ConvHMM") + 
-  annotate(geom = "text", x = 512, y = -157000, label = "Point extraction") + 
+  geom_text(data = label_df, 
+            aes(label = name, 
+                y = -valid_loss + 1500), color = "black") + 
   theme(legend.position = "none", 
         panel.grid.minor = element_blank()) + 
   scale_color_manual(values = c("darkorange1", "grey50", "darkorchid"))
