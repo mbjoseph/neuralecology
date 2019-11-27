@@ -342,7 +342,7 @@ if (params$preprint) knitr::include_graphics(fig_src_files[5])
 Route vectors combined information from the categorical and continuous route-level features.
 Unsurprisingly (because ecoregion was an input feature), routes in the same ecoregions clustered together (Fig. \@ref(`r ifelse(params$preprint, "fig:route-tsne", "fig:endfig5")`)a).
 Route embeddings also revealed relationships among ecoregions. 
-For example, Marine West Coast Forest ecoregion routes were similar to Northwestern Forested Mountains routes, and most different from Eastern Temperate Forests routes (Fig. \@ref(`r ifelse(params$preprint, "fig:route-tsne", "fig:endfig5")`)a). 
+For example, Marine West Coast Forest ecoregion routes were similar to Northwestern Forested Mountains routes, and most different from Northern Forests routes (Fig. \@ref(`r ifelse(params$preprint, "fig:route-tsne", "fig:endfig5")`)a). 
 Variation within clusters also related to continuous route-level features (Fig. \@ref(`r ifelse(params$preprint, "fig:route-tsne", "fig:endfig5")`)b). 
 
 ```{r occupancy-scatter, fig.cap=fig_caps[6], out.width = "400px"}
