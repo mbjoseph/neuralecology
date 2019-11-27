@@ -23,7 +23,7 @@ torch.backends.cudnn.benchmark = False
 loaders = simutils.get_loaders(1024, batch_size=1)
 
 final_convnet = simutils.ConvNet().to(device)
-final_convnet.load_state_dict(torch.load("../out/params/final-conv-hmm.pt"))
+final_convnet.load_state_dict(torch.load("out/params/final-conv-hmm.pt"))
 final_convnet.eval()
 
 dfs = []
@@ -44,6 +44,4 @@ for i_batch, (txy, idx) in enumerate(tqdm(loaders["test"])):
   )
     
 df = pd.concat(dfs)
-df.head()
-
-df.to_csv("test-set-checks.csv")
+df.to_csv("out/test-set-checks.csv")

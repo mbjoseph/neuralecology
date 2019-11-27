@@ -32,11 +32,11 @@ for n in train_data_sizes:
     fig = plt.figure()
     simutils.plot_loss(convnet.get("train_loss"), c="red")
     plt.ylabel("Training loss")
-    fig.savefig(f"train_loss_n{n}.png")
+    fig.savefig(f"fig/train_loss_n{n}.png")
 
     fig = plt.figure()
     simutils.plot_loss(convnet.get("valid_loss"), c="red")
     plt.ylabel("Validation loss")
-    fig.savefig(f"valid_loss_n{n}.png")
+    fig.savefig(f"fig/valid_loss_n{n}.png")
 
     del convnet

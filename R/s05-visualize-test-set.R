@@ -11,7 +11,7 @@ chm <- raster("out/scaled_chm_mosaic.tif")
 theme_set(theme_minimal() + 
             theme(panel.grid.minor = element_blank()))
 
-test_preds <- read_csv("notebooks/test-set-checks.csv") %>%
+test_preds <- read_csv("out/test-set-checks.csv") %>%
   mutate(gamma_12 = plogis(-6 + 40 * chm), 
          gamma_21 = plogis(6 - 40 * chm))
 
@@ -60,30 +60,6 @@ plot_df_row <- function(df) {
     theme_void()
   rgb_plot
 }
-
-
-# good - maximum predicted probability of transitioning to in transit where chm=0
-test_preds %>%
-  filter(chm == 0, pred_gamma_12 == max(pred_gamma_12)) %>%
-  plot_df_row
-
-# bad - minimum predicted probability of transitioning to in transit where chm=0
-test_preds %>%
-  filter(chm == 0) %>%
-  filter(pred_gamma_12 == min(pred_gamma_12)) %>%
-  plot_df_row
-
-# good - maximum probability of transitioning to foraging where chm>0
-test_preds %>%
-  filter(chm != 0, pred_gamma_21 == max(pred_gamma_21)) %>%
-  plot_df_row
-
-# bad - minimum probability of transitioning to foraging where chm>0
-test_preds %>%
-  filter(chm != 0) %>%
-  filter(pred_gamma_21 == min(pred_gamma_21)) %>%
-  plot_df_row
-
 
 plots <- test_preds %>%
   top_n(8, pred_gamma_12) %>%

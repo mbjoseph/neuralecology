@@ -129,10 +129,10 @@ def get_loaders(nmax, batch_size):
     """
     datasets = {
         "train": TrajectoryDataset(
-            "../out/trajectories/train", train=True, nmax=nmax
+            "out/trajectories/train", train=True, nmax=nmax
         ),
-        "validation": TrajectoryDataset("../out/trajectories/validation"),
-        "test": TrajectoryDataset("../out/trajectories/test")
+        "validation": TrajectoryDataset("out/trajectories/validation"),
+        "test": TrajectoryDataset("out/trajectories/test")
     }
     n_cpu = multiprocessing.cpu_count()
     dataloaders = {
@@ -206,7 +206,7 @@ def save_model(model, n, train_loss, valid_loss):
     """ Save parameters & losses of a model object 
     
     Saves to a file, e.g.,:
-    ../out/params/ModelClass_samplesize_params.pt
+    out/params/ModelClass_samplesize_params.pt
     
     Args: 
         model (nn.Module): model with params to save
@@ -214,7 +214,7 @@ def save_model(model, n, train_loss, valid_loss):
         train_loss (numpy.array): training loss values
         valid_loss (numpy.array): validation loss values
     """
-    par_dir = os.path.join("..", "out", "params")
+    par_dir = os.path.join("out", "params")
     os.makedirs(par_dir, exist_ok=True)
     model_class = type(model).__name__
     output_path = os.path.join(par_dir, f"{model_class}_{n}_params.pt")

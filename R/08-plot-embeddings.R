@@ -20,10 +20,12 @@ bbs_species <- read_csv('data/cleaned/bbs_species.csv') %>%
 bbs_routes <- read_csv('data/cleaned/clean_routes.csv')
 
 
-weight_files <- list.files(path = 'out/weights', full.names = TRUE)
+weight_files <- list.files(path = 'out/weights', pattern = ".csv", full.names = TRUE)
 en_files <- basename(weight_files) %>%
   gsub('_weights.csv', '', .) %>%
   gsub('_', ' ', .)
+
+
 
 joined_df <- weight_files %>%
   lapply(read_csv) %>%

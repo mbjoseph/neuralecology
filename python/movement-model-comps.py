@@ -73,12 +73,12 @@ for n in train_data_sizes:
 
     # ConvNet
     convnet = simutils.ConvNet()
-    convnet.load_state_dict(torch.load(f"../out/params/ConvNet_{n}_params.pt"))
+    convnet.load_state_dict(torch.load(f"out/params/ConvNet_{n}_params.pt"))
     convnet.to(device)
     convnet.eval()
 
     # baseline bestcase model
-    bestcase_wt = pd.read_csv(f"../out/params/bestcase_{n}.csv")
+    bestcase_wt = pd.read_csv(f"out/params/bestcase_{n}.csv")
     bestcase_gamma_pars = torch.tensor(
         bestcase_wt[["gamma_shape", "gamma_rate"]].values, dtype=torch.float
     )
@@ -93,7 +93,7 @@ for n in train_data_sizes:
     )
 
     # baseline pt model
-    pt_wt = pd.read_csv(f"../out/params/ptextract_{n}.csv")
+    pt_wt = pd.read_csv(f"out/params/ptextract_{n}.csv")
     pt_gamma_pars = torch.tensor(
         pt_wt[["gamma_shape", "gamma_rate"]].values, dtype=torch.float
     )
@@ -156,4 +156,4 @@ for n in train_data_sizes:
         }
     )
     print(loss_df)
-    loss_df.to_csv(f"../out/params/loss_df_{n}.csv")
+    loss_df.to_csv(f"out/params/loss_df_{n}.csv")

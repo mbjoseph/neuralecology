@@ -36,7 +36,7 @@ here::here()
 
 \begin{abstract}
 Neural networks are increasingly being used in science to infer hidden dynamics of natural systems from noisy observations, a task typically handled by hierarchical models in ecology. 
-This paper describes an emergent class of hierarchical models parameterized by neural networks: neural hierarchical models. 
+This paper describes a class of hierarchical models parameterized by neural networks: neural hierarchical models. 
 The derivation of such models analogizes the relationship between regression and neural networks. 
 A case study is developed for a neural dynamic occupancy model of North American bird populations, trained on millions of detection/non-detection time series for hundreds of species, providing insights into colonization and extinction at a continental scale. 
 Flexible models are increasingly needed that scale to large data and represent ecological processes. 
@@ -46,27 +46,28 @@ Neural hierarchical models satisfy this need, providing a bridge between deep le
 # Introduction {-}
 
 Deep neural networks have proved useful in myriad tasks due their ability to represent complex functions over structured domains [@lecun2015deep]. 
-While ecologists are beginning to use such approaches, e.g., to identify animals in images [@norouzzadeh2018automatically], there has been relatively little integration of deep neural networks in ecological models of population dynamics.
+While ecologists are beginning to use such approaches, e.g., to identify plants and animals in images [@norouzzadeh2018automatically; @fricker2019convolutional], there has been relatively little integration of deep neural networks with ecological models.
 
-Ecological dynamics that regulate populations are difficult to observe, and inference often proceeds by modeling the relationship between imperfect data and latent quantities or processes of interest with hierarchical models [@wikle2003hierarchical]. 
+Ecological processes are difficult to observe. 
+Inference often proceeds by modeling the relationship between imperfect data and latent quantities or processes of interest with hierarchical models [@wikle2003hierarchical]. 
 For example, occupancy models estimate the presence or absence of a species using imperfect detection data [@mackenzie2002estimating], and "dynamic" occupancy models estimate extinction and colonization dynamics [@mackenzie2003estimating].
 Population growth provides another example, motivating hierarchical models that link noisy observations to mechanistic models [@de2002fitting].
 In such models, it is often desirable to account for heterogeneity among sample units (e.g., differences among habitats and survey conditions), to better understand ecological dynamics. 
 
-Many hierarchical models in ecology account for heterogeneity among sample units using a linear combination of covariate values, despite there often being reasons to expect non-linearity [@lek1996application; @austin2002spatial; @oksanen2002continuum]. 
+Many hierarchical models in ecology account for heterogeneity among sample units using a linear combination of explanatory variables, despite there often being reasons to expect non-linearity [@lek1996application; @austin2002spatial; @oksanen2002continuum]. 
 A variety of solutions exist to account for non-linearity.
 For example, Gaussian processes have been used for species distribution models [@latimer2009hierarchical; @golding2016fast], in animal movement models [@johnson2008general], and in point process models for distance sampling data [@johnson2010model; @yuan2017point].
 Generalized additive models also have been used to account for spatial autocorrelation  [@miller2013spatial; @webb2014location], nonlinear responses to habitat characteristics [@knapp2003developing; @bled2013dynamic], and differential catchability in capture-recapture studies [@zwane2004semiparametric].
 
-Machine learning provides additional tools for approximating potentially nonlinear functions in hierarchical models. 
+Machine learning provides additional tools for approximating nonlinear functions in hierarchical models. 
 For example, @hutchinson2011incorporating combined a site-occupancy model with an ensemble of decision trees to predict bird occurrence, combining a structured observation and process model from ecology with a flexible random forest model. 
 Similar hybrid approaches could be developed for other classes of ecological models and/or machine learning methods.
-Neural networks seem particularly worthy of attention, given their successful applications in other domains [@lecun2015deep]. 
+Neural networks seem particularly worthy of attention, given their success in other domains [@lecun2015deep]. 
 
-Neural networks have been used in ecology to model observations of populations, but to date have not been integrated into hierarchical models that explicitly distinguish between ecological processes and imperfect observations. 
-For example, neural networks have been used to model the observed abundance of aquatic organisms, but without distinguishing observed from true abundance [@chon2001patterning; @jeong2001prediction; @jeong2008non; @malek2012applying].
+Neural networks have been used in ecology, but to date have not been integrated into hierarchical models that explicitly distinguish between ecological processes and imperfect observations. 
+For example, neural networks have modeled observed abundances of aquatic organisms, but without distinguishing observed from true abundance [@chon2001patterning; @jeong2001prediction; @jeong2008non; @malek2012applying].
 Neural networks also have been used to model stock-recruitment and apparent presence/absence data [@manel1999comparing; @chen2006neural; @ozesmi2006methodological; @harris2015generating; @chen2016deep], but have not yet been extended to account for imperfect detection, despite increasing recognition of its importance [@guillera2017modelling; @tobler2019joint]. 
-Notably, standard neural networks that classify or predict data are of limited use for ecological applications where the data tend to be imperfect, and the primary goal is learning about the dynamics of hard to observe systems. 
+Notably, standard neural networks that classify or predict data are of limited use for ecological applications where imperfect data are used to learn about dynamics of hard to observe systems. 
 As a solution, this paper describes neural hierarchical models that combine the function representation capacity of neural networks with hierarchical models that represent ecological processes. 
 
 # Related work {-}
@@ -74,28 +75,27 @@ As a solution, this paper describes neural hierarchical models that combine the 
 ## Neural networks {-}
 
 Neural networks are function approximators.
-Linear regression is a special case, where $x$ is mapped to a predicted value $y$:
+Linear regression is a special case, where an input vector $\vec{x}$ is mapped to a predicted value $y$:
   
-  $$y = w^T x,$$
+  $$y = \vec{w}^T \vec{x},$$
 
-where $w$ is a parameter vector (Fig.  \@ref(`r ifelse(params$preprint, "fig:figure2", "fig:endfig1")`)a). 
-Predicted values are linear combinations of the inputs $x$ due to the product $w^T x$, which restricts the complexity of the function mapping $x$ to $y$. 
+where $\vec{w}$ is a parameter vector (Fig.  \@ref(`r ifelse(params$preprint, "fig:figure2", "fig:endfig1")`)a). 
+Predicted values are linear combinations of the inputs $\vec{x}$ due to the product $\vec{w}^T \vec{x}$, which restricts the complexity of the function mapping $\vec{x}$ to $y$. 
 
-Instead of modeling outputs as linear functions of $x$, a model can be developed that is a linear function of a nonlinear transformation of $x$.
-A nonlinear transformation can be specified via polynomial terms, splines, or another basis expansion [@hefley2017basis], but neural networks parameterize the transformation via a set of sequential "hidden layers" [@goodfellow2016deep]. 
+Instead of modeling outputs as linear functions of $\vec{x}$, a model can be developed that is a linear function of a nonlinear transformation of $\vec{x}$.
+Nonlinear transformations can be specified via polynomial terms, splines, or another basis expansion [@hefley2017basis], but neural networks parameterize the transformation via a set of sequential "hidden layers" [@goodfellow2016deep]. 
 
-In a neural network with one hidden layer, the first hidden layer maps the length $D$ input $x$ to a length $D^{(1)}$ vector of "activations" $a^{(1)} = W^{(1)} x$, where $W^{(1)}$ is a $D^{(1)} \times D$ parameter matrix.
-The activations are passed to a differentiable nonlinear activation function $g$ to obtain the "hidden units" of the first layer $h^{(1)} = g(a^{(1)})$ (Fig. \@ref(`r ifelse(params$preprint, "fig:figure2", "fig:endfig1")`)b).
+In a neural network with one hidden layer, the first hidden layer maps the length $D$ input $\vec{x}$ to a length $D^{(1)}$ vector of "activations" $\vec{a}^{(1)} = \vec{W}^{(1)} \vec{x}$, where $\vec{W}^{(1)}$ is a $D^{(1)} \times D$ parameter matrix.
+The activations are passed to a differentiable nonlinear activation function $g$ to obtain the "hidden units" of the first layer $\vec{h}^{(1)} = g(\vec{a}^{(1)})$ (Fig. \@ref(`r ifelse(params$preprint, "fig:figure2", "fig:endfig1")`)b).
 
 The final layer of a neural network maps the a hidden layer to an output. 
-For a neural network with one hidden layer, if the output variable $y$ is a $K$ dimensional vector,  the output unit activations are given by $a^{(2)} = W^{(2)} h^{(1)}$, where $W^{(2)}$ is a $K \times D^{(1)}$ parameter matrix.
+For a neural network with one hidden layer, if the output variable $\vec{y}$ is a $K$ dimensional vector,  the output unit activations are given by $\vec{a}^{(2)} = \vec{W}^{(2)} \vec{h}^{(1)}$, where $\vec{W}^{(2)}$ is a $K \times D^{(1)}$ parameter matrix.
 The output activation can be written as a composition of functions that transform the inputs $x$:
 
-$$a^{(2)} = W^{(2)} \Big( g(W^{(1)} x) \Big).$$
+$$\vec{a}^{(2)} = \vec{W}^{(2)} \Big( g(\vec{W}^{(1)} \vec{x}) \Big).$$
 
-Written this way, it is apparent that linear regression is a special case of a neural network with zero hidden layers.
 Similar to link functions in generalized linear models, outputs can be transformed by an output activation function. 
-For example, if $y$ is unbounded, the identity function can act as an output activation so that $y = a^{(2)}$. 
+For example, if $\vec{y}$ is unbounded, the identity function can act as an output activation so that $\vec{y} = \vec{a}^{(2)}$. 
 Neural networks that predict probabilities typically use a sigmoid (inverse logit) activation function. 
 
 Neural networks usually are trained using stochastic gradient based optimization to minimize a loss function, e.g., the negative log likelihood of a Gaussian distribution for a regression task, a Bernoulli distribution for binary classification, or a Poisson distribution for a count model.
@@ -110,8 +110,8 @@ The field of deep learning, which applies such networks, provides a variety of n
 The potential for deep learning has been recognized in Earth science [@reichstein2019deep], the natural sciences [@ching2018opportunities; @gazestani2019genotype; @roscher2019explainable], physical sciences [@carleo2019machine],  chemical sciences [@butler2018machine], and ecology [@christin2018applications; @Desjardins-Proulx161125].
 For example, models of lake temperature that combine neural networks with loss functions consistent with known physical mechanisms perform better than physical models and neural networks applied alone [@karpatne2017physics]. 
 Similarly, generative adversarial networks with loss functions that encourage mass-balance have expedited electromagnetic calorimeter data generation from the Large Hadron Collider [@paganini2018accelerating; @radovic2018machine]. 
-Convolutional neural networks also have been successfully deployed in population genetics to make inferences about introgression, recombination, selection, and population sizes [@flagel2018unreasonable]. 
-In ecology, hierarchical models present an opportunity to develop similar science-based deep learning methods [@wikle2019comparison].
+Convolutional neural networks also have been successfully deployed in population genetics to make inferences about introgression, recombination, selection, and population sizes [@flagel2018unreasonable]. There are various ways to combine science knowledge with deep learning. @ba2019blending provide a useful taxonomy in the context of physics-based deep learning.
+In ecology, hierarchical models present an opportunity to build upon existing approaches to derive science-based deep learning methods.
 
 ## Hierarchical models {-}
 
@@ -155,10 +155,10 @@ State-space neural networks that use recurrent architectures provide another exa
 This class of models inherits the flexibility and scalability of neural networks, along with the inferential power of hierarchical models, but applications in ecology and environmental science are only just beginning to emerge [@wikle2019comparison].
 
 Construction of such models from existing hierarchical models is straightforward.
-For example, one can propose neural variants of occupancy models [@mackenzie2002estimating], dynamic occupancy models [@mackenzie2003estimating; @royle2007bayesian], N-mixture models [@royle2004n], mark-recapture models [@jolly1965explicit; @calvert2009hierarchical], and other hidden Markov models such as those used to understand animal movement [@patterson2009classifying; @langrock2012flexible; @patterson2017statistical]. 
+For example, one can propose neural variants of occupancy models [@mackenzie2002estimating], dynamic occupancy models [@mackenzie2003estimating; @royle2007bayesian], N-mixture models [@royle2004n], mark-recapture models [@jolly1965explicit; @calvert2009hierarchical], and other hidden Markov models [@patterson2009classifying; @langrock2012flexible; @patterson2017statistical]. 
 Output activation functions can be determined from inverse link functions, e.g., sigmoid (inverse logit) activations for probabilities, and loss functions can be constructed from the negative log likelihoods (see Appendix S1 in Supporting Information for example model specifications). 
 Specialized neural network architectures that operate on structured data can be readily integrated into such models. 
-For example, Appendix S2 in Supporting Information provides a simulation case study with a convolutional neural hierarchical model of animal movement.
+For example, Appendix S2 in Supporting Information provides a simulated animal movement case study where aerial imagery is mapped to state transition probabilities of a hidden Markov model with a convolutional neural network.
 To provide an empirical use case, a neural dynamic occupancy model is developed for extinction and colonization dynamics of North American bird communities.
 
 ## Case study {-}
@@ -172,7 +172,7 @@ printnum <- function(x) {
 
 The North American Breeding Bird Survey (BBS) is a large-scale annual survey aimed at characterizing trends in roadside bird populations [@link1998estimating; @sauer2011analysis; @sauer2013north; @bbs2018].
 Thousands of routes are surveyed once a year during the breeding season. 
-Surveys consist of volunteer observers that stop 50 times at points 800 meters apart on a transect, and record all birds detected within 400 meters for three minutes. 
+Surveys consist of volunteer observers that stop 50 times at points 800 meters apart on a transect, recording all birds detected within 400 meters for three minutes. 
 Species can be present, but not detected, and may go locally extinct or colonize new routes from year to year, motivating the development of dynamic occupancy models which use imperfect detection data to estimate latent presence or absence states [@mackenzie2003estimating; @royle2007bayesian]. 
 
 This case study uses BBS data from 1997-2018 excluding unidentified or hybrid species, restricting the analysis to surveys meeting the official BBS criteria [@bbs2018]. 
@@ -190,7 +190,7 @@ $$\psi_{t, s, j} = z_{t-1, s, j} \phi_{t-1, s, j} + (1 - z_{t-1, s, j}) \gamma_{
 
 ### Observation model {-}
 
-Let $y_{t, s, j}$ represent the total number of stops at which species $j$ was detected in year $t$ on route $s$. 
+Let $y_{t, s, j}$ represent the number of stops where species $j$ was detected in year $t$ on route $s$. 
 Conditional on a species being present, it is detected at each stop with probability $p_{t, s, j}$. 
 Assume that there are no false-positive detections, so that if a species is absent, it cannot be detected [but see @royle2006generalized]. 
 With $k=50$ replicate stops on each transect, the observations can be modeled using a Binomial likelihood for one species-route-year combination: 
@@ -208,23 +208,22 @@ Heterogeneity in parameter values among routes, years, species, and surveys was 
 2. **Single-species neural hierarchical models** mapped inputs to occupancy parameters using a neural network with one hidden layer (Fig. \@ref(`r ifelse(params$preprint, "fig:figure2", "fig:endfig1")`)d).
 3. **A multi-species deep neural hierarchical model** was developed to model occupancy dynamics of all species simultaneously (Fig. \@ref(`r ifelse(params$preprint, "fig:figure2", "fig:endfig1")`)e). 
 
-Input features included Environmental Protection Agency (EPA) level one ecoregions, the first eight principal components of the standard 19 WorldClim Bioclimatic variables averaged across the years 1970-2000 [@fick2017worldclim], BBS route spatial coordinates, distance from the coast, elevation, and road density within a 10 km buffer from the Global Roads Inventory Project [@meijer2018global]. 
+Input features included Environmental Protection Agency (EPA) level one ecoregions, the first eight principal components of the standard 19 WorldClim Bioclimatic variables averaged across the years 1970-2000 [@fick2017worldclim], BBS route spatial coordinates, distance from the coast, elevation, and road density within a 10 km buffer of each route [@meijer2018global]. 
 The model of detection probabilities additionally included survey-level features including temperature, duration, wind, and air conditions. 
 
 The neural hierarchical models were motivated by joint species distribution models in which species load onto a shared set of latent factors [@thorson2015spatial; @warton2015so; @ovaskainen2016uncovering; @thorson2016joint; @tikhonov2017using], and by recent work on deep neural basis expansions [@mcdermott2019deep; @wikle2019comparison]. 
 Analogously, the neural networks combined inputs into a latent vector for each route (the hidden layers), which act as latent factors that are mapped to parameters (Fig. \@ref(`r ifelse(params$preprint, "fig:figure2", "fig:endfig1")`)d). 
 Because the single species neural hierarchical models were fit separately for each species, latent factors were species-specific. 
-In contrast latent factors were shared among species in the multi-species model. 
+In contrast, latent factors were shared among species in the multi-species model. 
 
 The multi-species neural dynamic occupancy model additionally built upon previous work on deep multi-species embedding. 
-Deep multi-species embedding which uses vector-valued "entity embeddings" to represent each species [@chen2016deep; @guo2016entity]. 
+Deep multi-species embedding uses vector-valued "entity embeddings" to represent each species [@chen2016deep; @guo2016entity]. 
 These entity embeddings are mappings from categorical data (e.g., a species identiy) to continuous numeric vector representations. 
-Embeddings have been used perhaps most famously in language models. 
-Examples include the widely cited word2vec approach which maps words to vector spaces [@mikolov2013efficient].
+Embeddings are used extensively in language models such as word2vec, which maps words to vector spaces [@mikolov2013efficient].
 
 Further, the multi-species model combined species embeddings with encoder-decoder components to estimate occupancy parameters.
 Encoder-decoder neural networks are used in sequence-to-sequence translation [@sutskever2014sequence].
-They encode inputs (a sequence of words) into a latent vector space, then decode that vector representation (to generate another sequence) using a neural network. 
+They encode inputs (e.g., a sequence of words) into a latent vector space, then decode that vector representation to generate another sequence using a neural network. 
 Similarly, the multi-species model encoded route-level features into vector representations. 
 These route vectors were decoded by a recurrent neural network to generate a multivariate time series of latent vectors associated with colonization, persistence, and detection [@chung2014empirical].
 Finally, the multi-species model combined these route-level latent vectors with species-level embeddings to compute colonization, persistence, and detection probabilities (Fig. \@ref(`r ifelse(params$preprint, "fig:figure2", "fig:endfig1")`)e). 
@@ -241,12 +240,12 @@ To compare the performance of the three modeling approaches, the data were parti
 All routes within an ecoregion were assigned to the same partition. 
 This resulted in `r route_counts$n[route_counts$group == "train"]` training routes, `r route_counts$n[route_counts$group == "validation"]` validation routes, and `r route_counts$n[route_counts$group == "test"]` test routes.
 K-fold cross validation would also be possible, though it requires retraining of each model K times [@roberts2017cross]. 
-Because of the size of the BBS data and the computational resources required to train these models, a simpler train/validation/test split was used instead.
+Because of the size of the BBS data and the computational resources required to train these models, a simpler train/validation/test split was used.
 
-For each modeling approach, routes in the training set were used for parameter estimation. 
+For each of the three modeling approaches, routes in the training set were used for parameter estimation. 
 Single-species models were fit separately for each species (modeling approaches 1 and 2), and one multi-species model (approach 3) was fit using all of the training data. 
 Then, using the trained models, the mean predictive log-density of the validation data was evaluated to identify the best performing model [@gelman2014understanding]. 
-This step indicated which model fit best to the withheld validation data after training. 
+This step indicated which model fit best to the withheld validation data. 
 Finally, the best performing model was retrained using the training and validation data, and its predictive performance was evaluated on the withheld test set [@russell2016artificial]. 
 
 ```{r roc-test, fig.cap=fig_caps[2]}
@@ -258,7 +257,7 @@ if (params$preprint) knitr::include_graphics(fig_src_files[2])
 The final model's performance was evaluated quantiatitvely and qualitatively. 
 Quantitative predictive performance was evaluated in two ways. 
 First, 95% prediction interval coverage was computed for test set counts.
-Prediction intervals were constructed using the quantiles of the binomial distribution, marginalizing over latent states. 
+Prediction intervals were constructed using the quantiles of the binomial distribution, marginalizing over latent occupancy states. 
 Second, the area under the receiver operator characteristic curve (AUC) was computed for binarized test set counts.
 The AUC analysis also marginalized over latent states to derive predicted probabilities, e.g., $\text{Pr}(y_{t, s, j} = 0 \mid p_{t, s, j}, \psi_{t, s, j}) = 1 - \psi_{t, s, j} + \psi_{t, s, j}(1 - p_{t, s, j})^{50}$, where the parameters $p$ and $\psi$ are estimated by the model.
 These two approaches provide information on how well the final model could predict the number of stops with detections at each route, and whether any detections would occur on each route, respectively. 
@@ -270,8 +269,8 @@ Occupancy state estimates were also used to compute annual spatial centroids for
 These are hereafter referred to as "BBS range centroids" to differentiate from the actual centroid of a species' entire range. 
 
 To evaluate whether the results were qualitatively consistent with previous findings about colonization and extinction gradients over species ranges, correspondence between BBS range centroids and both colonization and persistence probabilities were assessed using linear regression [@mehlman1997change; @doherty2003local; @royle2007bayesian].
-For this analysis, the response variable was colonization or persistence averaged over time, the predictor was distance from BBS range centroid, and BBS routes were the sample units.
-Separate analyses were conducted for each species.
+For this analysis, the response variable was colonization or persistence averaged over time, the predictor was distance from BBS range centroid. 
+Survey routes were the sample units, and separate analyses were conducted for each species.
 To avoid bias associated with recently added BBS routes and variance associated with rare species, these analyses only used data from BBS routes surveyed in every year, species observed in every year, and species that occurred in 100 or more routes [@sauer2017expanding]. 
 
 Finally, visualizations were developed to graphically interpret the final model. 
@@ -357,8 +356,8 @@ Species pairs of the most similar and most dissimilar loadings are also provided
 
 # Discussion {-}
 
-Neural hierarchical models provide a bridge between hierarchical models that make use of scientific knowledge, and neural networks that approximate functions over structured domains. 
-This framework integrates multiple threads of research in science-based deep learning and ecological modeling, and can use existing hierarchical models as a starting point.
+Neural hierarchical models provide a bridge between hierarchical models built from scientific knowledge, and neural networks that approximate functions over structured domains. 
+This framework integrates research in science-based deep learning and ecological modeling, and can use existing hierarchical models as a starting point.
 The case study provides a proof of concept example of constructing a scalable and performant neural hierarchical model based on a multispecies dynamic occupancy model, providing insights about colonization and extinction dynamics of North American bird assemblages at a continental scale. 
 
 ```{r}
@@ -377,22 +376,25 @@ Yet, interpreting this result is complicated by irregular range geometry which c
 Additional complexity is apparent in Fig. \@ref(`r ifelse(params$preprint, "fig:persist-dist", "fig:endfig4")`)c, which indicates that gradients in colonization and persistence may not be isotropic (the same in every direction).
 With those caveats, the results are broadly consistent with a theoretical expectation that range boundaries can arise from gradients in local extinction and colonization rates [@holt2000alternative].
 
-The case study used a gated recurrent neural network architecture to capitalize on temporal structure [@chung2014empirical], and architectures designed for other data structures present additional opportunities for ecological applications. 
+The case study used a gated recurrent neural network architecture to handle temporal structure [@chung2014empirical], and architectures designed for other data structures present additional opportunities for ecological applications. 
 For example, neural hierarchical models could be used to couple a convolutional neural network observation model for camera trap images [@norouzzadeh2018automatically; @tabak2019machine] with an ecological process model that describes animal density, movement, or community composition [@burton2015wildlife]. 
 Gridded data such as modeled climate data, remotely sensed Earth observations, and even 96 well microplates also might use convolutional neural network architectures [@rawat2017deep]. 
 Appendix S2 provides a simulated example where gridded data (aerial imagery) are mapped to a state transition matrix of a hidden Markov model. 
 In addition, many ecological datasets exhibit graph structure related to phylogenies, social networks, or network-like spatial structure. 
-While it is possible to adapt convolutional neural networks to operate on distance matrices computed from graphs [@fioravanti2018phylogenetic], there are a variety of graph representation learning approaches that provide embeddings for nodes that encode network structure and node attributes [@hamilton2017inductive; @cai2018comprehensive]. 
+While it is possible to adapt convolutional neural networks to operate on distance matrices computed from graphs [@fioravanti2018phylogenetic], graph representation learning can also provide embeddings for nodes that encode network structure and node attributes [@hamilton2017inductive; @cai2018comprehensive]. 
 
 Neural hierarchical models can scale to data that are too large to fit in computer memory. 
 Indeed, memory limitations precluded comparison of a fully Bayesian multi-species dynamic occupancy model against the multi-species neural hierarchical model. 
 The current state of the art multi-species occupancy models use approximately one tenth of the number of species, at about half the number of sites, and are static in the sense that colonization and extinction dynamics through time are not represented [@tobler2019joint].
+Species distribution models are increasingly scalable due to advances in approximate Gaussian process models [@tikhonov2019computationally], but multispecies dynamic occupancy models have not previously been reported at this scale.
 This is particularly relevant for extensions of the BBS case study, given the volume of (imperfect) bird data accumulating through citizen science programs [@sullivan2009ebird]. 
-The key strategy providing this scalability is stochastic optimization that uses mini-batches - small subsets of a larger dataset - that provide a noisy estimate of model performance and partial derivatives that can be used during training without ever needing to load the entire dataset into memory [@ruder2016overview]. 
+The key strategy providing scalability in the case study is stochastic optimization that uses mini-batches - small subsets of a larger dataset - to generate noisy estimates of model performance and partial derivatives that can be used during training [@ruder2016overview].
+With this approach, the entire dataset does not need to be loaded into memory at the same time.
 This could be useful as a way to scale models that integrate BBS, eBird, and other data [@ngiam2011multimodal; @pacifici2017integrating; @zipkin2017integrating; @MistNet2]. 
 
 Though neural hierarchical models can perform well in the large data regime, they might be overparameterized in a small data setting. 
-For this reason, performance comparisons with simpler baseline models are useful, especially if those simpler models are easy to implement and understand. 
+For this reason, performance comparisons with simpler baseline models are useful. 
+Appendix S2 provides a simulated example, where simple baselines work better with small datasets, and more complex neural hierarchical models work better with large datasets.
 Approaches familiar to ecologists such as k-fold cross validation and (to a lesser extent) information criteria such as the Akaike Information Criterion (AIC) have been used with neural networks, but such approaches are less common than cross-validation with training, validation, and test partitions of the data [@anderson2004model; @jiang2016displacement; @ran2017parameter]. 
 With large datasets, considerable computational resources are required for training, so that retraining the same model many times might make k-fold cross validation infeasible.
 As a practical matter, even if a neural hierarchical model demonstrates superior predictive performance, a simpler model might be preferred if interpretability and/or explainability is a high priority, as it might be in a decision-making context [@rudin2018please]. 
@@ -418,6 +420,7 @@ Neural hierarchical models satisfy this need, and can provide a framework that l
 # Acknowledgements {-}
 
 Thanks to David Zonana and Roland Knapp for discussions on the potential of neural hierarchical models, and to Susie Ellis for providing feedback on a draft of the manuscript.
+This manuscript was also greatly improved by three anonymous reviewers.
 Also thanks to Brandon Edwards for developing the bbsBayes R package, which was used to acquire and parse the North American Breeding Bird Survey data. 
 This work was motivated by a workshop on machine learning in Earth science, hosted by Earth Lab and organized by the Federation of Earth Science Information Partners and the National Aeronatics and Space Administration Advanced Information Systems Technology program.
 This work was made possible by the CU Boulder Grand Challenge initiative and the Cooperative Institute for Research in the Environmental Sciences through their investment in Earth Lab.
@@ -463,6 +466,8 @@ if (!params$preprint) knitr::include_graphics(fig_src_files[6])
 ```
 `r if (!params$preprint) "\\clearpage"`
 
+
+<!-- TODO: Ensure vector notation is consistent in supplements -->
 
 # Appendix S1 {-}
 
@@ -911,7 +916,7 @@ Sequential(
 )
 ```
 
-In addition to using dropout to regularize the convolutional model, an $L_2$ penalty of $10^{-6}$ was also applied. 
+In addition to using dropout to regularize the convolutional model, an $L_2$ penalty of $10^{-5}$ was also applied. 
 To further regularize the model, image augmentation (random horizontal and vertical flips) was also applied while training, though this might not be desirable in cases where directional orientation of the input image is important [@simonyan2014very]. 
 Image augmentation generally includes strategies to perturb data while training computer vision models in an attempt to generate a robust model (i.e., one that is insensitive to translation, orientation, hue, contrast, etc.).
 
@@ -951,6 +956,12 @@ Consistent with the underlying generative model, image chips centered on tree ca
 ```{r top-prob-chips, fig.cap='Top eight test set image chips with the highest probabilities of transitioning (a) from a \"foraging\" state to \"in transit\", and (b) from \"in transit\" to \"foraging\".', out.width="450px"}
 knitr::include_graphics(here('fig', 'top-prob-chips.png'))
 ```
+
+## Implementation notes {-}
+
+The best case and point extraction models were both fit using the `momentuHMM` R package [@momentuHMM2018]. 
+The convolutional movmement model was implemented with PyTorch [@paszke2017automatic]. 
+All code required to reproduce the analysis is available on GitHub at [https://www.github.com/mbjoseph/neuralecology](https://www.github.com/mbjoseph/neuralecology). 
 
 
 \clearpage

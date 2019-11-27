@@ -13,7 +13,7 @@ chm <- raster("out/chm_mosaic.tif")
 mean(values(chm) > 30)
 chm[chm > 30] <- 30
 chm <- chm / cellStats(chm, max)
-writeRaster(chm, "out/scaled_chm_mosaic.tif")
+writeRaster(chm, "out/scaled_chm_mosaic.tif", overwrite = TRUE)
 
 rgb_mosaic <- stack("out/rgb_mosaic.tif")
 

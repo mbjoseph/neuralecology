@@ -1,7 +1,7 @@
 # Need to specify bash in order for conda activate to work.
 SHELL=/bin/bash
 # Note that the extra activate is needed to ensure that the activate floats env to the front of PATH
-CONDA_ACTIVATE=source $$(conda info --base)/etc/profile.d/conda.sh ; conda activate ; conda activate
+CONDA_ACTIVATE=source $$(conda info --base)/etc/profile.d/conda.sh ; conda activate ; conda activate neural-ecology
 
 
 all: paper/neural_ecology.pdf
@@ -10,7 +10,14 @@ figs = fig/centroid-displacement.jpg \
 	fig/occupancy_scatter.jpg \
 	fig/persist-dist-plot.jpg \
 	fig/roc-test.jpg \
-	fig/route_tsne.jpg
+	fig/route_tsne.jpg \
+	fig/chm-rgb.png \
+	fig/movement-distributions.pdf \
+	fig/traj-plot.png \
+	fig/example-trajectory.png \
+	fig/convhmm-perf.pdf \
+	fig/transition-densities.png \
+	fig/top-prob-chips.png
 	
 clean_data = data/cleaned/bbs_counts.csv \
 	data/cleaned/bbs_species.csv \
@@ -31,6 +38,20 @@ paper/neural_ecology.pdf: $(figs) paper/neural_ecology.Rmd paper/library.bib \
 	# replace paths in tex output (sed magic)
 	sed "s?`pwd`/fig/??" paper/neural_ecology.tex > paper/neural_ecology_submit.tex
 
+fig/chm-rgb.png fig/movement-distributions.pdf fig/traj-plot.png fig/example-trajectory.png: R/s01-get-neon-data.R R/s02-simulate-movement-trajectories.R
+		Rscript --vanilla R/s01-get-neon-data.R
+		Rscript --vanilla R/s02-simulate-movement-trajectories.R
+
+fig/convhmm-perf.pdf: fig/traj-plot.png R/s03-momentuHMM-fits.R R/s04-visualize-losses.R python/simutils.py python/train-movement-models.py python/movement-model-comps.py
+		Rscript --vanilla R/s03-momentuHMM-fits.R
+		($(CONDA_ACTIVATE) ; python python/train-movement-models.py )
+		($(CONDA_ACTIVATE) ; python python/movement-model-comps.py )
+		Rscript --vanilla R/s04-visualize-losses.R
+
+fig/transition-densities.png fig/top-prob-chips.png: R/s05-visualize-test-set.R fig/convhmm-perf.pdf python/retrain-final-model.py python/final-model-check.py
+		($(CONDA_ACTIVATE) ; python python/retrain-final-model.py )
+		($(CONDA_ACTIVATE) ; python python/final-model-check.py )
+		Rscript --vanilla R/s05-visualize-test-set.R
 
 data/cleaned/bbs-summary.csv data/cleaned/bbs.csv data/cleaned/clean_routes.csv: R/04-clean-data.R $(clean_data) data/cleaned/routes.csv
 		Rscript --vanilla R/04-clean-data.R
@@ -51,9 +72,9 @@ $(agg_data): R/01-get-bbs-data.R
 
 $(model_comps) out/route_embeddings.csv: R/06-compare-performance.R \
 	R/05-single-species-models.R stan/dynamic-occupancy.stan \
-	bbs-occupancy-model.py \
-	utils.py dataset.py data/cleaned/bbs.csv data/cleaned/clean_routes.csv R/utils.R
-		($(CONDA_ACTIVATE) neural-ecology ; python bbs-occupancy-model.py )
+	python/bbs-occupancy-model.py \
+	python/utils.py python/dataset.py data/cleaned/bbs.csv data/cleaned/clean_routes.csv R/utils.R
+		($(CONDA_ACTIVATE) ; python python/bbs-occupancy-model.py )
 		Rscript --vanilla R/05-single-species-models.R
 		Rscript --vanilla R/06-compare-performance.R
 
