@@ -218,7 +218,7 @@ In contrast, latent factors were shared among species in the multi-species model
 
 The multi-species neural dynamic occupancy model additionally built upon previous work on deep multi-species embedding. 
 Deep multi-species embedding uses vector-valued "entity embeddings" to represent each species [@chen2016deep; @guo2016entity]. 
-These entity embeddings are mappings from categorical data (e.g., a species identiy) to continuous numeric vector representations. 
+These entity embeddings are mappings from categorical data (e.g., a species identity) to continuous numeric vector representations. 
 Embeddings are used extensively in language models such as word2vec, which maps words to vector spaces [@mikolov2013efficient].
 
 Further, the multi-species model combined species embeddings with encoder-decoder components to estimate occupancy parameters.
@@ -254,7 +254,7 @@ if (params$preprint) knitr::include_graphics(fig_src_files[2])
 
 ### Final model evaluation {-}
 
-The final model's performance was evaluated quantiatitvely and qualitatively. 
+The final model's performance was evaluated quantitatively and qualitatively. 
 Quantitative predictive performance was evaluated in two ways. 
 First, 95% prediction interval coverage was computed for test set counts.
 Prediction intervals were constructed using the quantiles of the binomial distribution, marginalizing over latent occupancy states. 
@@ -358,7 +358,7 @@ Species pairs of the most similar and most dissimilar loadings are also provided
 
 Neural hierarchical models provide a bridge between hierarchical models built from scientific knowledge, and neural networks that approximate functions over structured domains. 
 This framework integrates research in science-based deep learning and ecological modeling, and can use existing hierarchical models as a starting point.
-The case study provides a proof of concept example of constructing a scalable and performant neural hierarchical model based on a multispecies dynamic occupancy model, providing insights about colonization and extinction dynamics of North American bird assemblages at a continental scale. 
+The case study provides a proof of concept example of constructing a scalable and performant neural hierarchical model based on a multi-species dynamic occupancy model, providing insights about colonization and extinction dynamics of North American bird assemblages at a continental scale. 
 
 ```{r}
 highest_slope_species_english <- notable_phi_sp$english[which.max(notable_phi_sp$phid_cor)]
@@ -386,7 +386,7 @@ While it is possible to adapt convolutional neural networks to operate on distan
 Neural hierarchical models can scale to data that are too large to fit in computer memory. 
 Indeed, memory limitations precluded comparison of a fully Bayesian multi-species dynamic occupancy model against the multi-species neural hierarchical model. 
 The current state of the art multi-species occupancy models use approximately one tenth of the number of species, at about half the number of sites, and are static in the sense that colonization and extinction dynamics through time are not represented [@tobler2019joint].
-Species distribution models are increasingly scalable due to advances in approximate Gaussian process models [@tikhonov2019computationally], but multispecies dynamic occupancy models have not previously been reported at this scale.
+Species distribution models are increasingly scalable due to advances in approximate Gaussian process models [@tikhonov2019computationally], but multi-species dynamic occupancy models have not previously been reported at this scale.
 This is particularly relevant for extensions of the BBS case study, given the volume of (imperfect) bird data accumulating through citizen science programs [@sullivan2009ebird]. 
 The key strategy providing scalability in the case study is stochastic optimization that uses mini-batches - small subsets of a larger dataset - to generate noisy estimates of model performance and partial derivatives that can be used during training [@ruder2016overview].
 With this approach, the entire dataset does not need to be loaded into memory at the same time.
@@ -400,7 +400,7 @@ With large datasets, considerable computational resources are required for train
 As a practical matter, even if a neural hierarchical model demonstrates superior predictive performance, a simpler model might be preferred if interpretability and/or explainability is a high priority, as it might be in a decision-making context [@rudin2018please]. 
 
 Neural networks have a reputation for being "black-box" models.
-However, the intrepretation and explanation of such models is an active area of research [@roscher2019explainable]. 
+However, the interpretation and explanation of such models is an active area of research [@roscher2019explainable]. 
 Interpretations map abstract concepts to domains that humans can make sense of, e.g., mapping neural network parameters to species identity or spatial location [@montavon2018methods].
 Explanations are collections of features in such a domain that contributed to a prediction [@montavon2018methods], e.g., sensitivity of model output to perturbations of the input [@olden2002illuminating; @gevrey2003review]. 
 
@@ -467,7 +467,6 @@ if (!params$preprint) knitr::include_graphics(fig_src_files[6])
 `r if (!params$preprint) "\\clearpage"`
 
 
-<!-- TODO: Ensure vector notation is consistent in supplements -->
 
 # Appendix S1 {-}
 
@@ -478,7 +477,7 @@ if (!params$preprint) knitr::include_graphics(fig_src_files[6])
 
 This appendix includes example specifications for neural occupancy, N-mixture, and hidden Markov models. 
 The goal in providing these specifications is to give concrete examples of neural hierarchical models that are relatively simple, while drawing connections to existing models. 
-Pytorch implementations in Jupyter notebooks are available at https://github.com/mbjoseph/neuralecology.
+PyTorch implementations in Jupyter notebooks are available at https://github.com/mbjoseph/neuralecology.
 
 Generally, the construction of a hierarchical model requires: 
 
@@ -522,7 +521,7 @@ $$z_i \sim \text{Bernoulli}(\psi_i).$$
 A simple approach to account for the effect of the site-level covariate on occupancy and detection would be to include a slope and intercept parameter specific to each component, using the logit function to ensure that estimated probabilities are bounded between 0 and 1: 
 
 $$\psi_i = \text{logit}^{-1} \big( \alpha^{(\psi)} + \beta^{(\psi)} x_i \big),$$
-$$p_i = \text{logit}^{-1} \big( \alpha^{(p)} + \beta^{(p)} x_i \big),$$
+$$p_i = \text{logit}^{-1} \big( \alpha^{(p)} + \vec{\beta}^{(p)} x_i \big),$$
 
 where $\alpha^j$ and $\beta^j$ are intercept and slope parameters for component $j$. 
 
@@ -535,9 +534,9 @@ $$\begin{bmatrix}
 
 where $f(x_i)$ is a neural network that takes a scalar as input (the site-level covariate $x_i$) and outputs a two dimensional vector containing occupancy and detection probabilities:
 
-$$f(x_i) = \text{logit}^{-1} \big( W^{(2)} g(W^{(1)} x_i) \big),$$
+$$f(x_i) = \text{logit}^{-1} \big( \vec{W}^{(2)} g(\vec{W}^{(1)} x_i) \big),$$
 
-where $W^{(1)}$ and $W^{(2)}$ are parameter matrices for the first and second layer, $g$ is a differentiable nonlinear activation function, e.g., the rectified linear unit activation function [@nair2010rectified], and the inverse logit transform is applied element-wise to ensure that $\psi_i$ and $p_i$ lie between 0 and 1. 
+where $\vec{W}^{(1)}$ and $\vec{W}^{(2)}$ are parameter matrices for the first and second layer, $g$ is a differentiable nonlinear activation function, e.g., the rectified linear unit activation function [@nair2010rectified], and the inverse logit transform is applied element-wise to ensure that $\psi_i$ and $p_i$ lie between 0 and 1. 
 
 
 ### Loss function {-}
@@ -549,7 +548,7 @@ $$L(\theta_f) = - \sum_{i = 1}^{n} \log\ \Big ( \psi_i \text{Binomial}(y_i \mid 
 
 where $\theta_f$ represents the parameters of the neural network $f$, and $I(y_i=0)$ is an indicator function equal to one when $y_i = 0$ (zero otherwise). 
 
-The loss for any particular site can be computed efficiently using the log-sum-exp trick, which is particularly useful when the log of summands is available (i.e., $\log(\psi_i) + \log \binom{k}{y_i} + y_i \log(p_i) + \log(k - y_i) + \log(1 - p_i)$ and $\log(1 - \psi_i)$ are already computed), as is the case in both Stan and Pytorch, which provide the log probability from the Binomial distribution.
+The loss for any particular site can be computed efficiently using the log-sum-exp trick, which is particularly useful when the log of summands is available (i.e., $\log(\psi_i) + \log \binom{k}{y_i} + y_i \log(p_i) + \log(k - y_i) + \log(1 - p_i)$ and $\log(1 - \psi_i)$ are already computed), as is the case in both Stan and PyTorch, which provide the log probability from the Binomial distribution.
 
 
 ## A single-species neural dynamic occupancy model {-}
@@ -594,15 +593,15 @@ $$
 where $f$ is a neural network. 
 Concretely, $f$ was parameterized as follows: 
 
-$$f(x_i) = \text{logit}^{-1} \Big( W^{(2)} g(W^{(1)} x_i ) \Big),$$
+$$f(x_i) = \text{logit}^{-1} \Big( \vec{W}^{(2)} g(\vec{W}^{(1)} x_i ) \Big),$$
 
-where $W^{(1)}$ is a parameter matrix that generates activations from the inputs, $g$ is the ReLU activation function, $W^{(2)}$ is a parameter matrix that maps the hidden layer to the outputs, and $\text{logit}^{-1}$ is the element-wise inverse logistic (sigmoid) function.
+where $\vec{W}^{(1)}$ is a parameter matrix that generates activations from the inputs, $g$ is the ReLU activation function, $\vec{W}^{(2)}$ is a parameter matrix that maps the hidden layer to the outputs, and $\text{logit}^{-1}$ is the element-wise inverse logistic (sigmoid) function.
 
 
 
 ### Loss function {-}
 
-The negative log observed data likelihood was used as the loss function, implemented in Pytorch following the description in @mackenzie2003estimating (equation 5-6), assuming that detection histories for site $i = 1, ..., n$ are conditionally independent and scaling the forward probabilities to avoid underflow as described in @rabiner1989tutorial.
+The negative log observed data likelihood was used as the loss function, implemented in PyTorch following the description in @mackenzie2003estimating (equation 5-6), assuming that detection histories for site $i = 1, ..., n$ are conditionally independent and scaling the forward probabilities to avoid underflow as described in @rabiner1989tutorial.
 
 
 ## A neural N-mixture model {-}
@@ -636,9 +635,9 @@ $$
  \end{bmatrix} = f(x_i),
 $$
 
-where $f$ is a neural network with two dimensional output activations $h(x_i)$ computed via: 
+where $f$ is a neural network with two dimensional output activations $\vec{h}(x_i)$ computed via: 
 
-$$h(x_i) = W^{(2)} g(W^{(1)} x_i ),$$
+$$\vec{h}(x_i) = \vec{W}^{(2)} g(\vec{W}^{(1)} x_i ),$$
 and final outputs computed using the log and logit link functions for expected abundance and detection probability:
 
 $$f(x_i) = \begin{bmatrix}
@@ -647,7 +646,7 @@ $$f(x_i) = \begin{bmatrix}
  \end{bmatrix}.$$
 
 
-Here too $W^{(1)}$ is a parameter matrix that generates activations from the inputs, $g$ is the rectified linear unit activation function, and $W^{(2)}$ is a parameter matrix that maps the hidden layer to the outputs.
+Here too $\vec{W}^{(1)}$ is a parameter matrix that generates activations from the inputs, $g$ is the rectified linear unit activation function, and $\vec{W}^{(2)}$ is a parameter matrix that maps the hidden layer to the outputs.
 Additionally $h_1(x_i)$ is the first element of the output activation vector, and $h_2(x_i)$ the second element.
 
 
@@ -670,10 +669,10 @@ Individuals are either alive ($z_{i, t} = 0$), recently dead such that their bod
 
 Observations $y_{i, t}$ are made on time steps $t=1, ..., T$, and if an individual is detected alive on timestep $t$, $y_{i, t} = 1$, and if an individual is detected as recently dead $y_{i, t}=2$, otherwise if the individual is not detected $y_{i, t} = 0$. 
 
-Let $\Omega_t$ denote a time-varying emission matrix containing state-dependent observation probabilities:
+Let $\vec{\Omega}_t$ denote a time-varying emission matrix containing state-dependent observation probabilities:
 
 $$
-\Omega_t =
+\vec{\Omega}_t =
 \begin{bmatrix}
     1-p_t         & p_t & 0         \\
     1 - \lambda_t & 0   & \lambda_t \\
@@ -703,9 +702,9 @@ where survival probability is $\phi_t = P(z_{i, t + 1} = 0 \mid z_{i, t} = 0)$, 
 Heterogeneity among timesteps was accounted for using three two-layer neural networks (one for $\phi$, one for $\lambda$, and one for $p$). 
 Each network ingests a univariate time series and outputs a corresponding time series of parameter values (i.e., each network maps a sequence of inputs $x = (x_{t = 1}, ..., x_{t=T})'$ to a sequence of parameter values, e.g., $p= (p_{t=1}, ..., p_{t=T})'$ for the detection probability network: 
 
-$$\phi = \text{logit}^{-1}f^{(\phi)}(x),$$
-$$\lambda = \text{logit}^{-1}f^{(\lambda)}(x),$$
-$$p = \text{logit}^{-1}f^{(p)}(x),$$
+$$\vec{\phi} = \text{logit}^{-1}f^{(\phi)}(\vec{x}),$$
+$$\vec{\lambda} = \text{logit}^{-1}f^{(\lambda)}(\vec{x}),$$
+$$\vec{p} = \text{logit}^{-1}f^{(p)}(\vec{x}),$$
 
 where $f^{(j)}$ is a neural network for parameter $j$.
 
@@ -729,13 +728,13 @@ As an aside, one can specify such models in terms of the complete data likelihoo
 \renewcommand{\thefigure}{S2.\@arabic\c@figure}
 \makeatother
 
-This appendix describes an animal movement model parameterized by a convolutional neural network, including simulations ot explore how the amount of training data affects performance relative to simpler baseline models. 
+This appendix describes an animal movement model parameterized by a convolutional neural network, including simulations to explore how the amount of training data affects performance relative to simpler baseline models. 
 Convolutional neural networks (CNNs) are widely used in computer vision applications, acting as function approximators that take an image as input and output a vector pf probabilities that the image is a picture of a cat, dog, car, etc. [@rawat2017deep]. 
 In ecological contexts, CNNs have been used to identify plants and animals [@norouzzadeh2018automatically; @fricker2019convolutional; @tabak2019machine]. 
 However, CNNs considered more broadly as function approximators have additional uses. 
 For example, instead of mapping an image to a vector of class probabilities, a CNN might map an image to a state transition probability matrix in a hidden Markov model, such as those used for animal movement trajectories [@zucchini2017hidden]. 
 
-Generally, the movmement of an individual animal depends on the spatiotemporal context around their location at any time, and on their behavioral state. 
+Generally, the movement of an individual animal depends on the spatiotemporal context around their location at any time, and on their behavioral state. 
 In many animal movement models, covariates for the state transitions are included using a linear combination of values followed by a softmax transformation to ensure probabilities within rows of a state transition probability matrix sum to one. 
 This allows inference about spatiotemporal covariates that explain movement such as distance to water, temperature, hour of day, wind, and ocean surface current [@patterson2017statistical; @johnson2018continuous; @mcclintock2018momentuhmm].
 In most cases, only the values of the covariates at the spatiotemporal point locations get used. 
@@ -864,9 +863,9 @@ This model is also representative of the common approach taken to include covari
 
 ### Convolutional hidden Markov model {-}
 
-The convolutional hidden Markov model is a neural hierarchical model that maps an image chip $X^{(t)}$ centered on an animal's location at time $t$ to a transition probability matrix $\vec{\Gamma}^{(t)}$.
+The convolutional hidden Markov model is a neural hierarchical model that maps an image chip $\vec{X}^{(t)}$ centered on an animal's location at time $t$ to a transition probability matrix $\vec{\Gamma}^{(t)}$.
 This is a departure from the previous two models. 
-The input $X^{(t)}$ is a multidimensional array instead of a real number (in the best case model) or a numeric vector (containing RGB reflectances in the point extraction model).
+The input $\vec{X}^{(t)}$ is a multidimensional array instead of a real number (in the best case model) or a numeric vector (containing RGB reflectances in the point extraction model).
 
 To generate image chip input arrays, square crops from the aerial RGB imagery were created centered on each simulated location. 
 The spatial footprint of each chip was 128 $\times$ 128 pixels ($\approx$ 13 m $\times$ 13 m). 
@@ -933,10 +932,10 @@ After using the validation data to compare models, the preferred model was retra
 
 ## Results {-}
 
-As the training set increased in size to more than 64 trajectories, the convolutional movement model's performane exceeded the point extraction baseline (Fig. \@ref(fig:conv-hmm-perf)). 
+As the training set increased in size to more than 64 trajectories, the convolutional movement model's performance exceeded the point extraction baseline (Fig. \@ref(fig:conv-hmm-perf)). 
 When the training set was relatively small (64 trajectories or fewer), the convolutional movement model performed worse than the point extraction baseline. 
 As expected, the best case model, which is correctly specified and has access to the "correct" input data (canopy height) always had the highest performance.
-But, restricting attention to models that only have access to the RGB imagery, the convolutional movmeent model was preferred. 
+But, restricting attention to models that only have access to the RGB imagery, the convolutional movement model was preferred. 
 
 ```{r conv-hmm-perf, fig.cap='Model performance on withheld validation data. The x-axis is the number of movement trajectories in the training data. The y-axis shows the performance (predictive log-likelihood) on withheld validation data. Each point is the result of a simulation, and colored lines connect results for each model. ConvHMM is the convolutional hidden Markov model of animal movement.'}
 knitr::include_graphics(here('fig', 'convhmm-perf.pdf'))
@@ -960,7 +959,7 @@ knitr::include_graphics(here('fig', 'top-prob-chips.png'))
 ## Implementation notes {-}
 
 The best case and point extraction models were both fit using the `momentuHMM` R package [@momentuHMM2018]. 
-The convolutional movmement model was implemented with PyTorch [@paszke2017automatic]. 
+The convolutional movement model was implemented with PyTorch [@paszke2017automatic]. 
 All code required to reproduce the analysis is available on GitHub at [https://www.github.com/mbjoseph/neuralecology](https://www.github.com/mbjoseph/neuralecology). 
 
 
@@ -1001,20 +1000,20 @@ for all $s$ and $t$, where the binomial sample size 50 arises from having 50 sto
 
 Heterogeneity in occupancy dynamics was introduced in the model via additive adjustments for EPA level one ecoregions and route-level characteristics (centered and scaled to have mean zero and unit variance):
 
-$$\text{logit}(\psi_{t=1, s}) = X_s \beta^{(\psi_1)} + \alpha_{r[s]}^{(\psi_1)},$$
+$$\text{logit}(\psi_{t=1, s}) = \vec{X}_s \vec{\beta}^{(\psi_1)} + \alpha_{r[s]}^{(\psi_1)},$$
 
-where $X_s$ is row $s$ from the design matrix $X$ containing the route-level features, $\beta^{(\psi_1)}$ is a parameter vector associated with initial occupancy, and EPA level one adjustments are denoted $\alpha_{r[s]}^{(\psi_1)}$, where $r[s]$ represents the region $r$ containing route $s$. 
+where $\vec{X}_s$ is row $s$ from the design matrix $\vec{X}$ containing the route-level features, $\vec{\beta}^{(\psi_1)}$ is a parameter vector associated with initial occupancy, and EPA level one adjustments are denoted $\alpha_{r[s]}^{(\psi_1)}$, where $r[s]$ represents the region $r$ containing route $s$. 
 Similarly, persistence and colonization probabilities are modeled as: 
 
-$$\text{logit}(\phi_{s}) = X_s \beta^{(\phi)} + \alpha_{r[s]}^{(\phi)},$$
+$$\text{logit}(\phi_{s}) = \vec{X}_s \vec{\beta}^{(\phi)} + \alpha_{r[s]}^{(\phi)},$$
 
-$$\text{logit}(\gamma_{s}) = X_s \beta^{(\gamma)} + \alpha_{r[s]}^{(\gamma)}.$$
+$$\text{logit}(\gamma_{s}) = \vec{X}_s \vec{\beta}^{(\gamma)} + \alpha_{r[s]}^{(\gamma)}.$$
 
 Heterogeneity in detection probability was included as:
 
-$$\text{logit}(p_{t, s}) = X^{(p)}_{(s, t)} \beta^{(p)} + \alpha_{r[s]}^{(p)},$$
+$$\text{logit}(p_{t, s}) = \vec{X}^{(p)}_{(s, t)} \vec{\beta}^{(p)} + \alpha_{r[s]}^{(p)},$$
 
-where $X^{(p)}_s$ is a augmented version of $X_s$ that adds survey-level features related to detection probability (survey duration, along with start and end sky, temperature, and wind conditions, which vary by route and year), $\beta^{(p)}$ is a coefficient vector, and $\alpha_{r[s]}^{(p)}$ is an ecoregion adjustment.
+where $\vec{X}^{(p)}_s$ is a augmented version of $\vec{X}_s$ that adds survey-level features related to detection probability (survey duration, along with start and end sky, temperature, and wind conditions, which vary by route and year), $\vec{\beta}^{(p)}$ is a coefficient vector, and $\alpha_{r[s]}^{(p)}$ is an ecoregion adjustment.
 
 ### Prior distributions {-}
 
@@ -1026,19 +1025,19 @@ $$\begin{bmatrix}
            \alpha_r^{(\phi)} \\
            \alpha_r^{(\gamma)} \\
            \alpha_r^{(p)}
-         \end{bmatrix} \sim \text{MultivariateNormal}\big(0, \Sigma \big),$$
+         \end{bmatrix} \sim \text{MultivariateNormal}\big(0, \vec{\Sigma} \big),$$
          
 for regions $r = 1, ..., R$.
-The covariance matrix $\Sigma$ was constructed for each level as $\Sigma = \text{diag}(\sigma) \Omega \text{diag}(\sigma)$, where $\sigma$ is a vector of length 4, $\text{diag}(\sigma)$ is a $4 \times 4$ diagonal matrix with entries equal to $\sigma$, and $\Omega$ is a $4 \times 4$ correlation matrix. 
+The covariance matrix $\vec{\Sigma}$ was constructed for each level as $\vec{\Sigma} = \text{diag}(\vec{\sigma}) \vec{\Omega} \text{diag}(\vec{\sigma})$, where $\vec{\sigma}$ is a vector of length 4, $\text{diag}(\vec{\sigma})$ is a $4 \times 4$ diagonal matrix with entries equal to $\vec{\sigma}$, and $\vec{\Omega}$ is a $4 \times 4$ correlation matrix. 
 
 Prior distributions were specified as follows: 
 
-$\sigma \sim \text{Gamma}(1.5, 10), \\
-\Omega \sim \text{LKJ-Correlation}(10), \\
-\beta^{(\psi_1)} \sim \text{Normal}(0, 1), \\
-\beta^{(\phi)} \sim \text{Normal}(0, 1), \\
-\beta^{(\gamma)} \sim \text{Normal}(0, 1), \\
-\beta^{(p)} \sim \text{Normal}(0, 1).$
+$\vec{\sigma} \sim \text{Gamma}(1.5, 10), \\
+\vec{\Omega} \sim \text{LKJ-Correlation}(10), \\
+\vec{\beta}^{(\psi_1)} \sim \text{Normal}(0, 1), \\
+\vec{\beta}^{(\phi)} \sim \text{Normal}(0, 1), \\
+\vec{\beta}^{(\gamma)} \sim \text{Normal}(0, 1), \\
+\vec{\beta}^{(p)} \sim \text{Normal}(0, 1).$
 
 ### Posterior distribution {-}
 
@@ -1047,8 +1046,8 @@ The posterior distribution is proportional to:
 \begin{align*}
 \prod_t \prod_s \text{Binomial}(y_{t, s} \mid z_{t, s} p_{t, s}, 50) \times \\
 \prod_s \text{Bernoulli}(z_{t=1, s} \mid \psi_{t=1, s}) \prod_{t=2}^T \text{Bernoulli}(z_{t, s} \mid \phi_{s} z_{t-1, s} + \gamma_{s} (1 - z_{t-1, s})) \times \\
-\prod_r [\alpha_r \mid \sigma, \Omega]  \times \\
-[\beta^{(\psi_1)}] [\beta^{(\phi)}] [\beta^{(\gamma)}] [\beta^{(p)}] [\sigma] [\Omega].
+\prod_r [\alpha_r \mid \vec{\sigma}, \vec{\Omega}]  \times \\
+[\vec{\beta}^{(\psi_1)}] [\vec{\beta}^{(\phi)}] [\vec{\beta}^{(\gamma)}] [\vec{\beta}^{(p)}] [\vec{\sigma}] [\vec{\Omega}].
 \end{align*}
 
 ## Single species neural hierarchical model structure {-}
@@ -1076,34 +1075,34 @@ for all $s$, and $t$.
 ### Parameter model {-}
 
 Heterogeneity in occupancy and observation parameters was included by modeling initial occupancy, persistence, colonization, and detection probabilities as outputs of a neural network (Fig. \@ref(fig:figs1)). 
-Categorical inputs to the network included EPA level one ecoregions, which were mapped to 8 dimensional numeric vector embeddings, $h^{(L_1)}_r$ for regions $r=1, ..., R$ [@guo2016entity].
+Categorical inputs to the network included EPA level one ecoregions, which were mapped to 8 dimensional numeric vector embeddings, $\vec{h}^{(L_1)}_r$ for regions $r=1, ..., R$ [@guo2016entity].
 Categorical entity embeddings are equivalent to using one layer of a neural network with 8 dimensional output, where the inputs are one-hot encoded ecoregion codes, but in practice using an embedding layer is more computationally efficient because it capitalizes on the sparsity of a one-hot encoding.
 
 For example, let $R$ represent the number of level 1 ecoregions containing BBS routes ($R = 14$). 
-Let $x_{r[s]}^{(L_1)}$ represent a one-hot encoded vector of length $R$, where all entries are zero except for the index of the level 1 ecoregion containing route $s$ (denoted $r[s]$), which is set equal to one. 
-Then, let $W^{(L_1)}$ represent a parameter matrix of size $D^{(L_1)} \times R$, where $D^{(L_1)}$ is the dimensionality of the embedding ($D^{(L_1)}=8$). 
+Let $\vec{x}_{r[s]}^{(L_1)}$ represent a one-hot encoded vector of length $R$, where all entries are zero except for the index of the level 1 ecoregion containing route $s$ (denoted $r[s]$), which is set equal to one. 
+Then, let $\vec{W}^{(L_1)}$ represent a parameter matrix of size $D^{(L_1)} \times R$, where $D^{(L_1)}$ is the dimensionality of the embedding ($D^{(L_1)}=8$). 
 Note that one-hot encodings are often used linear models, where categorical covariates are coded as dummy variables, and this is a special case where the embeddings are one dimensional. 
-Then, the embedding $h_{r[s]}^{(L_1)}$ for the level 1 ecoregion $r$ containing route $s$ is therefore a vector with $D^{(L_1)}$ elements, given by:
+Then, the embedding $\vec{h}_{r[s]}^{(L_1)}$ for the level 1 ecoregion $r$ containing route $s$ is therefore a vector with $D^{(L_1)}$ elements, given by:
 
-$$h_{r[s]}^{(L_1)} = W^{(L_1)} x_{r[s]}^{(L_1)},$$
+$$\vec{h}_{r[s]}^{(L_1)} = \vec{W}^{(L_1)} \vec{x}_{r[s]}^{(L_1)},$$
 
-which essentially corresponds to extracting column $r$ from the embedding matrix $W^{(L_1)}$.
+which essentially corresponds to extracting column $r$ from the embedding matrix $\vec{W}^{(L_1)}$.
 
-Embeddings for route $s$ are concatenated with the numeric route-level features $x_s$ (a vector containing climate principal components, road density, distance from coast, latitude, and longitude) to obtain a vector for route $s$ that is the zeroth hidden layer of the neural network $h_s^{(0)}$:
+Embeddings for route $s$ are concatenated with the numeric route-level features $\vec{x}_s$ (a vector containing climate principal components, road density, distance from coast, latitude, and longitude) to obtain a vector for route $s$ that is the zeroth hidden layer of the neural network $\vec{h}_s^{(0)}$:
 
-$$h_s^{(0)} = \begin{bmatrix}
-           h_{r[s]}^{(L_1)} \\
-           x_s
+$$\vec{h}_s^{(0)} = \begin{bmatrix}
+           \vec{h}_{r[s]}^{(L_1)} \\
+           \vec{x}_s
          \end{bmatrix}.$$
 
-This vector $h_s^{(0)}$ is mapped to next hidden layer with $D^{(1)} = 4$ hidden units via a fully-connected layer, followed by leaky rectified linear unit activation functions [@xu2015empirical]. 
+This vector $\vec{h}_s^{(0)}$ is mapped to next hidden layer with $D^{(1)} = 4$ hidden units via a fully-connected layer, followed by leaky rectified linear unit activation functions [@xu2015empirical]. 
 The leaky rectified linear unit activation function is $g(x) = \text{max}(0, x) -0.01 \times \text{min}(0, x)$.
 Thus, the next hidden layer is obtained in a forward pass via:
 
-$$h_s = g(W^{(1)} h_s^{(0)}),$$
+$$\vec{h}_s = g(\vec{W}^{(1)} \vec{h}_s^{(0)}),$$
 
-where $W^{(1)}$ is a $D^{(1)} \times D^{(0)}$ parameter matrix.
-For the single species models, $D^{(0)} = 21$, because there is one embedding of size 8, and an additional 13 elements in the route-level covariate vector $x_s$ (eight principal component axes, elevation, road density, distance from coast, latitude, and longitude).
+where $\vec{W}^{(1)}$ is a $D^{(1)} \times D^{(0)}$ parameter matrix.
+For the single species models, $D^{(0)} = 21$, because there is one embedding of size 8, and an additional 13 elements in the route-level covariate vector $\vec{x}_s$ (eight principal component axes, elevation, road density, distance from coast, latitude, and longitude).
 
 ```{r figs1, fig.cap='Extended computational diagram for the single species neural dynamic occupancy model. Outer grey boxes indicate the different levels of the model (route and year) that index quantities inside the boxes. Yellow nodes indicate occupancy parameters, and red nodes indicate detection parameters. Hidden layers are represented by $h$, with layer-specific superscripts. Outputs include initial occupancy ($\\psi_1$), persistence ($\\phi$), colonization ($\\gamma$), and detection probabilities ($p$).', out.width = "250px"}
 knitr::include_graphics(here('fig', 'figs1.pdf'))
@@ -1111,12 +1110,12 @@ knitr::include_graphics(here('fig', 'figs1.pdf'))
 
 The hidden layer is then mapped to initial occupancy, persistence, colonization, and detection probabilities, via fully connected layers: 
 
-$$\text{logit}(\psi_{s, t=1}) = W^{(\psi_1)} h_s,$$
-$$\text{logit}(\gamma_s) = W^{(\gamma)} h_s,$$
-$$\text{logit}(\phi_s) = W^{(\phi)} h_s,$$
-$$\text{logit}(p_{t, s}) = W^{(p)} (h_s, x^{(p)}_{t, s})' \quad \text{for} \ t = 1, ..., T.$$
+$$\text{logit}(\psi_{s, t=1}) = \vec{W}^{(\psi_1)} \vec{h}_s,$$
+$$\text{logit}(\gamma_s) = \vec{W}^{(\gamma)} \vec{h}_s,$$
+$$\text{logit}(\phi_s) = \vec{W}^{(\phi)} \vec{h}_s,$$
+$$\text{logit}(p_{t, s}) = \vec{W}^{(p)} (\vec{h}_s, \vec{x}^{(p)}_{t, s})' \quad \text{for} \ t = 1, ..., T.$$
 
-Here $W^{(\psi_1)}$, $W^{(\gamma)}$, and $W^{(\phi)}$ are $4 \times 1$ parameter matrices, and $W^{(p)}$ is a $(4 + n_p) \times 1$ parameter matrix that maps the concatenation of detection-related hidden unit vector $h_s^{(p)}$ with $n_p$ survey specific features contained in the vector $x^{(p)}_{t, s}$ to the detection probability $p_{t, s}$.
+Here $\vec{W}^{(\psi_1)}$, $\vec{W}^{(\gamma)}$, and $\vec{W}^{(\phi)}$ are $4 \times 1$ parameter matrices, and $\vec{W}^{(p)}$ is a $(4 + n_p) \times 1$ parameter matrix that maps the concatenation of detection-related hidden unit vector $\vec{h}_s^{(p)}$ with $n_p$ survey specific features contained in the vector $\vec{x}^{(p)}_{t, s}$ to the detection probability $p_{t, s}$.
 
 
 ## Multi-species neural hierarchical model structure {-}
@@ -1147,88 +1146,90 @@ for all $s$, $t$, and $j$.
 
 **Route representations**
 
-```{r figs2, fig.cap='Extended computational diagram for the multi-species neural hierarchical dynamic occupancy model. Outer grey boxes indicate the different levels of the model that index quantities inside the boxes. Yellow nodes indicate occupancy parameters, and red nodes indicate detection parameters. Outputs include initial occupancy ($\\psi_1$), persistence ($\\phi$), colonization ($\\gamma$), and detection probabilities ($p$). The box labeled GRU is a gated recurrent unit that decodes temporal sequences of hidden layers from encoded route vectors.', out.width = "200px"}
-knitr::include_graphics(here('fig', 'figs2.pdf'))
-```
-
 Heterogeneity in occupancy dynamics was introduced by allowing initial colonization, persistence, colonization, and detection probabilities to relate to latent spatiotemporal feature vectors (Fig. \@ref(fig:figs2)). 
 These latent spatiotemporal feature vectors represent a nonlinear combination of route-level inputs. 
 For the multi-species model, all feature vectors are 64 dimensional.
 Hidden layers are 32 dimensional unless stated otherwise. 
 
+
 Categorical inputs to the network included EPA level one ecoregion, mapped to categorical entity embeddings [@guo2016entity].
 As with the single-species models:
 
-$$h_{r[s]}^{(L_1)} = W^{(L_1)} x_{r[s]}^{(L_1)},$$
+$$\vec{h}_{r[s]}^{(L_1)} = \vec{W}^{(L_1)} \vec{x}_{r[s]}^{(L_1)},$$
 
-where $h_{r[s]}^{(L_1)}$ is the embedding for a level one ecoregion $r$ containing route $s$, $W^{(L_1)}$ is a parameter matrix, and $x_{r[s]}^{(L_1)}$ is a one-hot encoding for the level one ecoregion $r$ containing route $s$.
-Concatenating the ecoregion embedding with route-level features $x_s$ for route $s$ provides the zeroth hidden layer of the network.
+where $\vec{h}_{r[s]}^{(L_1)}$ is the embedding for a level one ecoregion $r$ containing route $s$, $\vec{W}^{(L_1)}$ is a parameter matrix, and $\vec{x}_{r[s]}^{(L_1)}$ is a one-hot encoding for the level one ecoregion $r$ containing route $s$.
+Concatenating the ecoregion embedding with route-level features $\vec{x}_s$ for route $s$ provides the zeroth hidden layer of the network.
 
-$$h_s^{(0)} = \begin{bmatrix}
-           h_{r[s]}^{(L_1)} \\
-           x_s
+$$\vec{h}_s^{(0)} = \begin{bmatrix}
+           \vec{h}_{r[s]}^{(L_1)} \\
+           \vec{x}_s
          \end{bmatrix}.$$
 
-This zeroth hidden layer $h_s^{(0)}$ that combines an ecoregion embedding and route-level features is then passed to a sequence of hidden layers:
+This zeroth hidden layer $\vec{h}_s^{(0)}$ that combines an ecoregion embedding and route-level features is then passed to a sequence of hidden layers:
 
-$$h_s^{(1)} = g(W^{(1)} h_s^{(0)}),$$
-$$h_s^{(2)} = g(W^{(2)} h_s^{(1)}),$$
-$$h_s^{(3)} = g(W^{(3)} h_s^{(2)}),$$
+$$\vec{h}_s^{(1)} = g(\vec{W}^{(1)} \vec{h}_s^{(0)}),$$
+$$\vec{h}_s^{(2)} = g(\vec{W}^{(2)} \vec{h}_s^{(1)}),$$
+$$\vec{h}_s^{(3)} = g(\vec{W}^{(3)} \vec{h}_s^{(2)}),$$
 
-where $g$ is the leaky ReLU activation function, so that $h_s^{(3)}$ is a vector valued nonlinear combination of route-level features. 
+where $g$ is the leaky ReLU activation function, so that $\vec{h}_s^{(3)}$ is a vector valued nonlinear combination of route-level features. 
 
 This hidden layer is then mapped to parameter-specific hidden layers. 
 The initial occupancy probability hidden layer uses a fully connected layer: 
 
-$$h_s^{(\psi_1)} = g(W^{(\psi_1)} h_s^{(3)}).$$
+$$\vec{h}_s^{(\psi_1)} = g(\vec{W}^{(\psi_1)} \vec{h}_s^{(3)}).$$
 
 Colonization, persistence, and detection probability hidden layers were allowed to vary in space and time and modeled using a recurrent neural network. 
-Temporal variation was modeled by treating $h_s^{(3)}$ as a route-level encoding, that is decoded by a two-layer gated recurrent unit -- a particular type of sequence model often used in time series analysis and text modeling, similar to a long short term memory model [@chung2014empirical].
-The gated recurrent unit takes the vector $h_s^{(3)}$ as an input, and outputs a multivariate sequence of shape $T \times (32 \times 3)$, which is reshaped into a $T \times 32 \times 3$ dimensional array that has dimensions for years, hidden features, and model components (persistence, colonization, and detection).
+Temporal variation was modeled by treating $\vec{h}_s^{(3)}$ as a route-level encoding, that is decoded by a two-layer gated recurrent unit -- a particular type of sequence model often used in time series analysis and text modeling, similar to a long short term memory model [@chung2014empirical].
+The gated recurrent unit takes the vector $\vec{h}_s^{(3)}$ as an input, and outputs a multivariate sequence of shape $T \times (32 \times 3)$, which is reshaped into a $T \times 32 \times 3$ dimensional array that has dimensions for years, hidden features, and model components (persistence, colonization, and detection).
 
 $$
 \begin{bmatrix}
-   h^{(\phi)}_{1:T} \\
-   h^{(\gamma)}_{1:T} \\
-   h^{(p)}_{1:T}
- \end{bmatrix}_s = \text{GRU}(h_s^{(3)}),
+   \vec{h}^{(\phi)}_{1:T} \\
+   \vec{h}^{(\gamma)}_{1:T} \\
+   \vec{h}^{(p)}_{1:T}
+ \end{bmatrix}_s = \text{GRU}(\vec{h}_s^{(3)}),
 $$
 
 where the subscript $1:T$ indicates that values are generated for timesteps $t=1, ..., T$.
 These latent spatiotemporal route features are then combined with species-specific parameters generated via deep multi-species embedding [@chen2016deep].
 
+
+```{r figs2, fig.cap='Extended computational diagram for the multi-species neural hierarchical dynamic occupancy model. Outer grey boxes indicate the different levels of the model that index quantities inside the boxes. Yellow nodes indicate occupancy parameters, and red nodes indicate detection parameters. Outputs include initial occupancy ($\\psi_1$), persistence ($\\phi$), colonization ($\\gamma$), and detection probabilities ($p$). The box labeled GRU is a gated recurrent unit that decodes temporal sequences of hidden layers from encoded route vectors.', out.width = "210px"}
+knitr::include_graphics(here('fig', 'figs2.pdf'))
+```
+
 **Hierarchical deep multi-species embedding**
 
 Species-specific parameters were modeled as outputs of a neural network that ingests species-level traits (in this case, species identity, genus, family, and order).
 Taxonomic embeddings enable information to be shared among species within genera, families, and orders. 
-A vector valued embedding $v_j$ for species $j$ is generated by concatenating embeddings at each taxonomic level:
+A vector valued embedding $\vec{v}_j$ for species $j$ is generated by concatenating embeddings at each taxonomic level:
 
-$$h_j = W^{(\text{Species})} x_j,$$
-$$h_j^{(g)} = W^{(\text{Genus})} x_j^{(g)},$$
-$$h_j^{(f)} = W^{(\text{Family})} x_j^{(f)},$$
-$$h_j^{(o)} = W^{(\text{Order})} x_j^{(o)},$$
+$$\vec{h}_j = \vec{W}^{(\text{Species})} \vec{x}_j,$$
+$$\vec{h}_j^{(g)} = \vec{W}^{(\text{Genus})} \vec{x}_j^{(g)},$$
+$$\vec{h}_j^{(f)} = \vec{W}^{(\text{Family})} \vec{x}_j^{(f)},$$
+$$\vec{h}_j^{(o)} = \vec{W}^{(\text{Order})} \vec{x}_j^{(o)},$$
 
-$$v_j = \begin{bmatrix}
-           h_j \\
-           h_j^{(g)} \\
-           h_j^{(f)} \\
-           h_j^{(o)}
+$$\vec{v}_j = \begin{bmatrix}
+           \vec{h}_j \\
+           \vec{h}_j^{(g)} \\
+           \vec{h}_j^{(f)} \\
+           \vec{h}_j^{(o)}
          \end{bmatrix}.$$
 
-Here $h_j$ is the vector valued embedding for species $j$, $W^{(\text{Species})}$ is a parameter matrix, $x_j$ is a one hot encoded vector, $h_j^{(g)}$ is the vector valued embedding for the genus containing species $j$, etc.
-The vector $v_j$ is mapped to parameter-specific hidden units via fully connected layers:
+Here $\vec{h}_j$ is the vector valued embedding for species $j$, $\vec{W}^{(\text{Species})}$ is a parameter matrix, $\vec{x}_j$ is a one hot encoded vector, $\vec{h}_j^{(g)}$ is the vector valued embedding for the genus containing species $j$, etc.
+The vector $\vec{v}_j$ is mapped to parameter-specific hidden units via fully connected layers:
 
-$$h_j^{(\psi_1^*)} = g(W^{(\psi_1^*)} v_j),$$
-$$h_j^{(\phi^*)} = g(W^{(\phi^*)} v_j),$$
-$$h_j^{(\gamma^*)} = g(W^{(\gamma^*)} v_j),$$
-$$h_j^{(p^*)} = g(W^{(p^*)} v_j).$$
+$$\vec{h}_j^{(\psi_1^*)} = g(\vec{W}^{(\psi_1^*)} \vec{v}_j),$$
+$$\vec{h}_j^{(\phi^*)} = g(\vec{W}^{(\phi^*)} \vec{v}_j),$$
+$$\vec{h}_j^{(\gamma^*)} = g(\vec{W}^{(\gamma^*)} \vec{v}_j),$$
+$$\vec{h}_j^{(p^*)} = g(\vec{W}^{(p^*)} \vec{v}_j).$$
 
 These hidden layers are then mapped to species-specific parameters via fully connected layers with identity activation functions:
 
-$$w_j^{(\psi_1)} = W^{(w_{\psi_1})} h_j^{(\psi_1^*)},$$
-$$w_j^{(\phi)} = W^{(w_{\phi})} h_j^{(\phi^*)},$$
-$$w_j^{(\gamma)} = W^{(w_{\gamma})} h_j^{(\gamma^*)},$$
-$$w_j^{(p)} = W^{(w_{p})} h_j^{(p^*)}.$$
+$$\vec{w}_j^{(\psi_1)} = \vec{W}^{(w_{\psi_1})} \vec{h}_j^{(\psi_1^*)},$$
+$$\vec{w}_j^{(\phi)} = \vec{W}^{(w_{\phi})} \vec{h}_j^{(\phi^*)},$$
+$$\vec{w}_j^{(\gamma)} = \vec{W}^{(w_{\gamma})} \vec{h}_j^{(\gamma^*)},$$
+$$\vec{w}_j^{(p)} = \vec{W}^{(w_{p})} \vec{h}_j^{(p^*)}.$$
 
 By modeling parameters as outputs of a neural network with shared features, relationships among occupancy and detection parameters can be learned. 
 By including features (embeddings) at multiple taxonomic levels, information among taxonomically similar species can be shared.
@@ -1237,18 +1238,18 @@ By including features (embeddings) at multiple taxonomic levels, information amo
 
 A dot product combines latent spatiotemporal route features with species-specific parameters:
 
-$$\text{logit}(\psi_{t=1, s, j}) = h^{(\psi_1^*)}_{s} \cdot w^{(\psi_1)}_j,$$
-$$\text{logit}(\phi_{t, s, j}) = h^{(\phi^*)}_{t, s} \cdot w^{(\phi)}_j,$$
-$$\text{logit}(\gamma_{t, s, j}) = h^{(\gamma^*)}_{t, s} \cdot w^{(\gamma)}_j,$$
-$$\text{logit}(p_{t, s, j}) = h^{(p^*)}_{t, s} \cdot w^{(p)}_j,$$
+$$\text{logit}(\psi_{t=1, s, j}) = \vec{h}^{(\psi_1^*)}_{s} \cdot \vec{w}^{(\psi_1)}_j,$$
+$$\text{logit}(\phi_{t, s, j}) = \vec{h}^{(\phi^*)}_{t, s} \cdot \vec{w}^{(\phi)}_j,$$
+$$\text{logit}(\gamma_{t, s, j}) = \vec{h}^{(\gamma^*)}_{t, s} \cdot \vec{w}^{(\gamma)}_j,$$
+$$\text{logit}(p_{t, s, j}) = \vec{h}^{(p^*)}_{t, s} \cdot \vec{w}^{(p)}_j,$$
 
-where $x \cdot y$ is the dot product of $x$ and $y$: $x \cdot y = \sum_i x_i y_i$.
+where $\vec{x} \cdot \vec{y}$ is the dot product of $\vec{x}$ and $\vec{y}$: $\vec{x} \cdot \vec{y} = \sum_i x_i y_i$.
 
 ## Implementation {-}
 
 Maximum *a posteriori* estimates of baseline model parameters were obtained with Stan [@carpenter2017stan; @rstan]. 
-Penalized maximum likelihood estimates of the neural hierarchical model were obtained with Pytorch [@paszke2017automatic], with L2 regularization penalties on the network parameters, which is equivalent to maximum a posteriori estimation for the neural network with Gaussian priors for the parameters [@blundell2015weight]. 
+Penalized maximum likelihood estimates of the neural hierarchical model were obtained with PyTorch [@paszke2017automatic], with L2 regularization penalties on the network parameters, which is equivalent to maximum a posteriori estimation for the neural network with Gaussian priors for the parameters [@blundell2015weight]. 
 The discrete latent occupancy states were marginalized using the forward algorithm, so that the optimization objective used the observed data likelihood (rather than the complete data likelihood).
-This optimization proceeded in one step, in contrast to some previous approaches that combine deep neural networks with spatiotemporal models with two-stage least squares parameter estimation [@mcdermott2019deep].
-To avoid underflow, forward probabilities were computed on the log scale for the baseline model in Stan, and using forward probability scaling in Pytorch for the neural hierarchical models [@rabiner1989tutorial].
+This optimization proceeded in one step, in contrast to some previous approaches that combine deep neural networks with spatiotemporal models using two-stage least squares parameter estimation [@mcdermott2019deep].
+To avoid underflow, forward probabilities were computed on the log scale for the baseline model in Stan, and using forward probability scaling in PyTorch for the neural hierarchical models [@rabiner1989tutorial].
 All code required to reproduce the analysis is available on GitHub at [https://www.github.com/mbjoseph/neuralecology](https://www.github.com/mbjoseph/neuralecology). 
