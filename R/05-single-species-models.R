@@ -19,6 +19,8 @@ fit_species_model <- function(orig_df, model, overwrite = FALSE) {
     paste0(., '_ss.csv') %>%
     file.path('out', .)
   
+  dir.create('out', showWarnings = FALSE)
+  
   if (file.exists(out_path) & !overwrite) {
     return(NULL)
   }
@@ -123,7 +125,7 @@ fit_species_model <- function(orig_df, model, overwrite = FALSE) {
 
 
 pboptions(use_lb=TRUE)
-cl <- makeCluster(parallel::detectCores() - 1)
+cl <- makeCluster(parallel::detectCores())
 clusterEvalQ(cl, library(tidyverse))
 clusterEvalQ(cl, library(rstan))
 out <- pblapply(bbs, fit_species_model, cl = cl, model = m_init)

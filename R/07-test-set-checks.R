@@ -130,17 +130,17 @@ roc_plot <- roc_df %>%
 
 auc_plot <- auc_df %>%
   ggplot(aes(.estimate)) + 
-  geom_histogram() + 
+  geom_histogram(bins=50) + 
   xlab('AUC') + 
   ylab("Frequency") + 
   ggtitle('(b)')
 
 routes <- st_read('data/cleaned/routes.shp') %>%
   left_join(auc_df) %>%
-  st_transform(102008)
+  st_transform(3174)
 
 ecoregions <- st_read('data/NA_CEC_Eco_Level3.shp') %>%
-  st_transform(102008) %>%
+  st_transform(3174) %>%
   ms_simplify %>%
   st_crop(routes)
 

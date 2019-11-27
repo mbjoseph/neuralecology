@@ -9,8 +9,9 @@ import pandas as pd
 from tqdm import tqdm
 import itertools
 import re
-import torch
+import multiprocessing
 
+import torch
 torch.set_default_dtype(torch.float64)
 import torch.nn as nn
 import torch.nn.functional as F
@@ -242,10 +243,10 @@ batch_size = 2 ** 11
 print(f"Batch size is {batch_size}")
 
 train_loader = DataLoader(
-    bbs_train, batch_size=batch_size, shuffle=True, num_workers=6
+    bbs_train, batch_size=batch_size, shuffle=True, num_workers=multiprocessing.cpu_count()
 )
 valid_loader = DataLoader(
-    bbs_valid, batch_size=batch_size * 4, num_workers=6, shuffle=True
+    bbs_valid, batch_size=batch_size * 4, num_workers=multiprocessing.cpu_count(), shuffle=True
 )
 
 net = MultiNet(
@@ -298,7 +299,7 @@ for sp in tqdm(dataset.cat_ix["english"].keys()):
             sp_ds,
             batch_size=batch_size,
             shuffle=False,
-            num_workers=6,
+            num_workers=multiprocessing.cpu_count(),
             pin_memory=True,
         )
 
@@ -444,10 +445,10 @@ def fit_single_species_model(sp, model):
         dataset.bbs.query("group == 'validation' & english == @sp")
     )
     sp_train_loader = DataLoader(
-        sp_train, batch_size=batch_size // 4, shuffle=True, num_workers=3
+        sp_train, batch_size=batch_size // 4, shuffle=True, num_workers=multiprocessing.cpu_count()
     )
     sp_valid_loader = DataLoader(
-        sp_valid, batch_size=batch_size * 4, num_workers=3, shuffle=True
+        sp_valid, batch_size=batch_size * 4, num_workers=multiprocessing.cpu_count(), shuffle=True
     )
     sp_net = model(
         num_l1=len(dataset.cat_ix["L1_KEY"]), nx=nx, nt=nt, nx_p=nx_p
@@ -495,7 +496,7 @@ def fit_single_species_model(sp, model):
         sp_ds,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=6,
+        num_workers=multiprocessing.cpu_count(),
         pin_memory=True,
     )
     sp_p = []
@@ -560,7 +561,7 @@ final_net.to(device)
 final_optimizer = optim.Adam(final_net.parameters(), weight_decay=1e-3)
 bbs_retrain = dataset.BBSData(dataset.bbs.query("group != 'test'"))
 retrain_loader = DataLoader(
-    bbs_retrain, batch_size=batch_size, shuffle=True, num_workers=6
+    bbs_retrain, batch_size=batch_size, shuffle=True, num_workers=multiprocessing.cpu_count()
 )
 retrain_loss = list()
 
@@ -604,7 +605,7 @@ for sp in tqdm(dataset.cat_ix["english"].keys()):
             sp_ds,
             batch_size=batch_size,
             shuffle=False,
-            num_workers=6,
+            num_workers=multiprocessing.cpu_count(),
             pin_memory=True,
         )
 
@@ -715,5 +716,6 @@ h_psi0_df = pd.melt(h_psi0_df, id_vars=["row_idx", "par"]).rename(
     columns={"variable": "h_dim"}
 )
 
+# concatenate all route vectors into one data frame and save
 h_df = pd.concat((h_phi_df, h_gamma_df, h_p_df, h_psi0_df), axis=0, sort=True)
 h_df.to_csv("out/route_embeddings.csv", index=False)

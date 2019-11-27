@@ -8,3 +8,5 @@ roc-test.*
 detect-dist-plot.*
 centroid-displacement.*
 persist-dist-plot.*
+movement-distributions.pdf
+convhmm-perf.pdf
