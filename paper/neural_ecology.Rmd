@@ -99,7 +99,7 @@ For example, if $\vec{y}$ is unbounded, the identity function can act as an outp
 Neural networks that predict probabilities typically use a sigmoid (inverse logit) activation function. 
 
 Neural networks usually are trained using stochastic gradient based optimization to minimize a loss function, e.g., the negative log likelihood of a Gaussian distribution for a regression task, a Bernoulli distribution for binary classification, or a Poisson distribution for a count model.
-Partial derivatives of the model parameters are computed with respect to the loss value via backpropagation, and parameters are updated to reduce the loss. 
+Partial derivatives of the model parameters are computed with respect to the loss via backpropagation, and parameters are updated to reduce the loss. 
 In practice, these partial derivatives are often computed via automatic differentiation over a "mini-batch" of samples, which provides a noisy estimate of the gradient [@ruder2016overview].
 
 Neural networks are popular both because of their practical successes in a wide variety of applications, and because they possess some desirable theoretical properties. 
