@@ -62,7 +62,7 @@ plot_df_row <- function(df) {
 }
 
 plots <- test_preds %>%
-  top_n(8, pred_gamma_12) %>%
+  top_n(9, pred_gamma_12) %>%
   arrange(pred_gamma_12) %>%
   mutate(id = 1:n()) %>%
   split(.$id) %>%
@@ -70,7 +70,7 @@ plots <- test_preds %>%
 plots[[1]] <- plots[[1]] + ggtitle("(a) Highest Pr(transition to \"in transit\")")
 
 plots_21 <- test_preds %>%
-  top_n(8, pred_gamma_21) %>%
+  top_n(9, pred_gamma_21) %>%
   arrange(pred_gamma_21) %>%
   mutate(id = 1:n()) %>%
   split(.$id) %>%
@@ -78,4 +78,4 @@ plots_21 <- test_preds %>%
 plots_21[[1]] <- plots_21[[1]] + ggtitle("(b) Highest Pr(transition to \"foraging\")")
 
 top_prob_plots <- wrap_plots(c(plots, plots_21), nrow = 2)
-ggsave("fig/top-prob-chips.png", top_prob_plots, width = 8, height = 2)
+ggsave("fig/top-prob-chips.png", top_prob_plots, width = 8, height = 2.5)

@@ -48,10 +48,12 @@ fig/convhmm-perf.pdf: fig/traj-plot.png R/s03-momentuHMM-fits.R R/s04-visualize-
 		($(CONDA_ACTIVATE) ; python python/movement-model-comps.py )
 		Rscript --vanilla R/s04-visualize-losses.R
 
-fig/transition-densities.png fig/top-prob-chips.png: R/s05-visualize-test-set.R fig/convhmm-perf.pdf python/retrain-final-model.py python/final-model-check.py
+fig/transition-densities.png fig/top-prob-chips.png: R/s05-visualize-test-set.R out/test-set-checks.csv 
+		Rscript --vanilla R/s05-visualize-test-set.R
+
+out/test-set-checks.csv: fig/convhmm-perf.pdf python/retrain-final-model.py python/final-model-check.py
 		($(CONDA_ACTIVATE) ; python python/retrain-final-model.py )
 		($(CONDA_ACTIVATE) ; python python/final-model-check.py )
-		Rscript --vanilla R/s05-visualize-test-set.R
 
 data/cleaned/bbs-summary.csv data/cleaned/bbs.csv data/cleaned/clean_routes.csv: R/04-clean-data.R $(clean_data) data/cleaned/routes.csv
 		Rscript --vanilla R/04-clean-data.R
