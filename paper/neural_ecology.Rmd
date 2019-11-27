@@ -1,6 +1,6 @@
 ---
 params:
-  preprint: false
+  preprint: true
 title: "`r ifelse(params$preprint, 'Neural hierarchical models of ecological populations', '')`"
 bibliography: library.bib
 output: 
@@ -8,14 +8,14 @@ output:
     keep_tex: TRUE
     toc: FALSE
     # uncomment below for submitted version with line numbering, title page etc.
-    includes:
-      before_body: title.sty
-      in_header: doc-prefix.tex
-    # uncomment below for preprint
-    # extra_dependencies:
-    #   neurips_2019: ["preprint"]
     # includes:
-    #   in_header: preprint-prefix.tex
+    #   before_body: title.sty
+    #   in_header: doc-prefix.tex
+    # uncomment below for preprint
+    extra_dependencies:
+      neurips_2019: ["preprint"]
+    includes:
+      in_header: preprint-prefix.tex
 editor_options: 
   chunk_output_type: console
 fontsize: 12pt
@@ -325,7 +325,7 @@ The model identified the invasive Eurasian Collared-Dove (*Streptopelia decaocto
 Increasing trends also have previously been reported for the species with the next three highest population growth rates: 
 `r highest_growth_rates[1]`, `r highest_growth_rates[2]`, and `r highest_growth_rates[3]` [@sauer2013north]. 
 
-```{r persist-dist, fig.cap=fig_caps[4], out.width = "400px"}
+```{r persist-dist, fig.cap=fig_caps[4], out.width = "300px"}
 if (params$preprint) knitr::include_graphics(fig_src_files[4])
 ```
 

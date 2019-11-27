@@ -300,7 +300,8 @@ p0 <- dec_df %>%
   geom_point(data = to_label, 
              size = pt_size * 2.5, 
              alpha = min(c(1, pt_alpha*3))) + 
-  theme(panel.grid.minor = element_blank()) + 
+  theme(panel.grid.minor = element_blank(),
+        plot.margin = unit(c(0, 5, 0, 5), "pt")) + 
   geom_text_repel(aes(label = english), data = to_label, size = 2.7) + 
   scale_x_continuous(breaks = scales::pretty_breaks(n = 3)) + 
   scale_y_continuous(breaks = scales::pretty_breaks(n = 3))
@@ -317,7 +318,8 @@ dist_cor_plot <- dec_df %>%
   theme_minimal() + 
   xlab("Mean occupancy") + 
   ylab("Coefficient") + 
-  theme(panel.grid.minor = element_blank()) + 
+  theme(panel.grid.minor = element_blank(),
+        plot.margin = unit(c(0, 5, 0, 5), "pt")) + 
   facet_grid(Label~., scales = 'free_y') + 
   scale_y_continuous(breaks = scales::pretty_breaks(n = 4)) + 
   scale_x_continuous(breaks = scales::pretty_breaks(n = 4))
@@ -347,7 +349,8 @@ p2 <- dist_decay_df %>%
   ylab("Probability") + 
   theme_minimal() + 
   theme(panel.grid.minor = element_blank(), 
-        axis.text.x = element_text(angle = 35))
+        axis.text.x = element_text(angle = 35),
+        plot.margin = unit(c(0, 5, 0, 5), "pt"))
 p2
 
 p3 <- z_mles %>%
@@ -388,20 +391,17 @@ p3 <- z_mles %>%
   theme_minimal() + 
   theme(legend.position = 'none') +
   facet_grid(Label~english) + 
-  theme(axis.text = element_blank())
+  theme(axis.text = element_blank(),
+        plot.margin = unit(c(0, 5, 0, 5), "pt"))
 p3
 
 
-rel_width <- .45
-
-persist_dist_plot <- ((p0 + ggtitle("(a)")) | (dist_cor_plot + ggtitle("(b)"))) / (p3 + ggtitle("(c)")) / (p2 + ggtitle("(d)")) + plot_layout(heights = c(1, 3, 1.5))
+persist_dist_plot <- ((p0 + ggtitle("(a)")) | (dist_cor_plot + ggtitle("(b)"))) / (p3 + ggtitle("(c)")) / (p2 + ggtitle("(d)")) + plot_layout(heights = c(1, 2, 1.2))
 persist_dist_plot
 
 persist_dist_plot %>%
   {
     ggsave(filename = 'fig/persist-dist-plot.jpg', plot = ., 
-           width = 6, height = 10, dpi = dpi)
-    ggsave(filename = 'fig/persist-dist-plot.pdf', plot = ., 
-           width = 6, height = 10)
+           width = 6, height = 9, dpi = dpi)
   }
 
