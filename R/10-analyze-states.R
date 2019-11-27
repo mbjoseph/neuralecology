@@ -291,7 +291,7 @@ pt_size <- .5
 
 p0 <- dec_df %>%
   ggplot(aes(y = phid_cor, x = gammad_cor)) + 
-  geom_point(alpha = pt_alpha / 2, size = pt_size) + 
+  geom_point(alpha = pt_alpha / 3, size = pt_size) + 
   geom_hline(yintercept = 0, linetype = 'dashed', color = 'grey') + 
   geom_vline(xintercept = 0, linetype = 'dashed', color = 'grey') + 
   theme_minimal() + 
@@ -394,14 +394,14 @@ p3
 
 rel_width <- .45
 
-persist_dist_plot <- ((p0 + ggtitle("(a)")) | (dist_cor_plot + ggtitle("(b)"))) / (p3 + ggtitle("(c)")) / (p2 + ggtitle("(d)")) + plot_layout(heights = c(.5, 1, .6))
+persist_dist_plot <- ((p0 + ggtitle("(a)")) | (dist_cor_plot + ggtitle("(b)"))) / (p3 + ggtitle("(c)")) / (p2 + ggtitle("(d)")) + plot_layout(heights = c(1, 3, 1.5))
 persist_dist_plot
 
 persist_dist_plot %>%
   {
     ggsave(filename = 'fig/persist-dist-plot.jpg', plot = ., 
-           width = 7, height = 9.5, dpi = dpi)
+           width = 6, height = 10, dpi = dpi)
     ggsave(filename = 'fig/persist-dist-plot.pdf', plot = ., 
-           width = 7, height = 9.5)
+           width = 6, height = 10)
   }
 

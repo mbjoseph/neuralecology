@@ -505,7 +505,7 @@ plot_traj <- function() {
 }
 
 trajplot <- plot_traj()
-ggsave("fig/example-trajectory.png", plot = trajplot, width = 4, height = 3)
+ggsave("fig/example-trajectory.png", plot = trajplot, width = 6, height = 3)
 
 
 

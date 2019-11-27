@@ -418,17 +418,20 @@ class ConvNet(nn.Module):
         self.conc_pars = nn.Parameter(torch.randn(2) * 0.1)
 
         self.conv1 = nn.Sequential(
-            nn.Conv2d(4, 16, kernel_size=9, stride=3), nn.LeakyReLU(),
+            nn.Conv2d(4, 16, kernel_size=9, stride=3), 
+            nn.LeakyReLU(),
         )
         self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2)
 
         self.conv2 = nn.Sequential(
-            nn.Conv2d(16, 32, kernel_size=5), nn.LeakyReLU(),
+            nn.Conv2d(16, 32, kernel_size=5), 
+            nn.LeakyReLU(),
         )
         self.pool2 = nn.MaxPool2d(kernel_size=3, stride=2)
 
         self.conv3 = nn.Sequential(
-            nn.Conv2d(32, 64, kernel_size=3), nn.LeakyReLU(),
+            nn.Conv2d(32, 64, kernel_size=3), 
+            nn.LeakyReLU(),
         )
         self.pool3 = nn.MaxPool2d(kernel_size=3, stride=2)
 

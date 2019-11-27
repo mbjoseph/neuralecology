@@ -117,7 +117,7 @@ In ecology, hierarchical models present an opportunity to develop similar scienc
 
 Hierarchical models combine a data model, a process model, and a parameter model [@berliner1996hierarchical; @wikle2003hierarchical]. 
 Data models represent the probability distribution of observations conditioned on a process and some parameters, e.g., the probability of capturing a marked animal, given its true state (alive or dead). 
-Process models represent probability distribution of the states and their dynamics, conditioned on some parameters. 
+Process models represent states and their dynamics, conditioned on some parameters. 
 State variables are often incompletely observed, e.g., whether an individual animal is alive or whether a site is occupied. 
 Parameter models represent probability distributions for unknown parameters - priors in a Bayesian framework. 
 In a non-Bayesian setting, parameters are treated as unknowns and estimated from the data, but parameter uncertainty is not represented using probability distributions [@cressie2009accounting]. 
@@ -157,8 +157,9 @@ This class of models inherits the flexibility and scalability of neural networks
 Construction of such models from existing hierarchical models is straightforward.
 For example, one can propose neural variants of occupancy models [@mackenzie2002estimating], dynamic occupancy models [@mackenzie2003estimating; @royle2007bayesian], N-mixture models [@royle2004n], mark-recapture models [@jolly1965explicit; @calvert2009hierarchical], and other hidden Markov models such as those used to understand animal movement [@patterson2009classifying; @langrock2012flexible; @patterson2017statistical]. 
 Output activation functions can be determined from inverse link functions, e.g., sigmoid (inverse logit) activations for probabilities, and loss functions can be constructed from the negative log likelihoods (see Appendix S1 in Supporting Information for example model specifications). 
-Furthermore, neural architectures specialized to operate on structured data (e.g., convolutional neural networks for gridded data) can be readily integrated into such models (see Appendix S2 in Supporting Information for an example of a convolutional neural hierarchical model of animal movement).
-To provide a concrete empirical use case, a neural dynamic occupancy model is developed for extinction and colonization dynamics of North American bird communities.
+Specialized neural network architectures that operate on structured data can be readily integrated into such models. 
+For example, Appendix S2 in Supporting Information provides a simulation case study with a convolutional neural hierarchical model of animal movement.
+To provide an empirical use case, a neural dynamic occupancy model is developed for extinction and colonization dynamics of North American bird communities.
 
 ## Case study {-}
 
@@ -196,7 +197,7 @@ With $k=50$ replicate stops on each transect, the observations can be modeled us
 
 $$[y_{t, s, j} \mid z_{t, s, j}, p_{t, s, j}] = \text{Binomial}(y_{t, s,j } \mid z_{t, s, j} p_{t, s, j}, k),$$
 
-where square brackets denote the probability function. 
+where square brackets denote the probability function (e.g., in this case, $[y_{t, s, j} \mid z_{t, s, j}, p_{t, s, j}] = \text{Pr}(Y_{t, s, j} = y_{t, s, j} \mid z_{t, s, j}, p_{t, s, j})$ where $Y_{t, s, j}$ is a discrete random variable and $y_{t, s, j}$ is a particular value). 
 The joint likelihood corresponds to the product of these terms for all years, routes, and species [@dorazio2010models].
 
 ### Parameter models {-}
@@ -379,7 +380,7 @@ With those caveats, the results are broadly consistent with a theoretical expect
 The case study used a gated recurrent neural network architecture to capitalize on temporal structure [@chung2014empirical], and architectures designed for other data structures present additional opportunities for ecological applications. 
 For example, neural hierarchical models could be used to couple a convolutional neural network observation model for camera trap images [@norouzzadeh2018automatically; @tabak2019machine] with an ecological process model that describes animal density, movement, or community composition [@burton2015wildlife]. 
 Gridded data such as modeled climate data, remotely sensed Earth observations, and even 96 well microplates also might use convolutional neural network architectures [@rawat2017deep]. 
-Appendix S2 provides a concrete example where gridded data (aerial imagery) are mapped to a state transition matrix of a hidden Markov model. 
+Appendix S2 provides a simulated example where gridded data (aerial imagery) are mapped to a state transition matrix of a hidden Markov model. 
 In addition, many ecological datasets exhibit graph structure related to phylogenies, social networks, or network-like spatial structure. 
 While it is possible to adapt convolutional neural networks to operate on distance matrices computed from graphs [@fioravanti2018phylogenetic], there are a variety of graph representation learning approaches that provide embeddings for nodes that encode network structure and node attributes [@hamilton2017inductive; @cai2018comprehensive]. 
 
@@ -393,7 +394,7 @@ This could be useful as a way to scale models that integrate BBS, eBird, and oth
 Though neural hierarchical models can perform well in the large data regime, they might be overparameterized in a small data setting. 
 For this reason, performance comparisons with simpler baseline models are useful, especially if those simpler models are easy to implement and understand. 
 Approaches familiar to ecologists such as k-fold cross validation and (to a lesser extent) information criteria such as the Akaike Information Criterion (AIC) have been used with neural networks, but such approaches are less common than cross-validation with training, validation, and test partitions of the data [@anderson2004model; @jiang2016displacement; @ran2017parameter]. 
-In large data settings, considerable computational resources are required for training retraining the same model many times might make k-fold cross validation infeasible.
+With large datasets, considerable computational resources are required for training, so that retraining the same model many times might make k-fold cross validation infeasible.
 As a practical matter, even if a neural hierarchical model demonstrates superior predictive performance, a simpler model might be preferred if interpretability and/or explainability is a high priority, as it might be in a decision-making context [@rudin2018please]. 
 
 Neural networks have a reputation for being "black-box" models.
@@ -781,7 +782,7 @@ $$\text{logit}(\gamma_{2, 1}^{(t)}) = 6 - 40x_t,$$
 where $x_t$ is the scaled canopy height at an animal's location in time $t$ (Fig. \@ref(fig:movement-distributions)A).
 This fully specifies the state transition matrix, because the rows must sum to one, implying for example that $\gamma_{1, 1}^{(t)} = 1 - \gamma_{1, 2}^{(t)}$.
 
-```{r movement-distributions, fig.cap='Panel A shows the true relationship between scaled canopy height (x-axis) and state transition probabilities in the simulation. Panels B and C show the densities of step sizes (B) and turn angles in radians (C) used in the simulation, colored by behavioral state.', out.width = "300px"}
+```{r movement-distributions, fig.cap='Panel A shows the true relationship between scaled canopy height (x-axis) and state transition probabilities in the simulation. Panels B and C show the densities of step sizes (B) and turn angles in radians (C) used in the simulation, colored by behavioral state.', out.width = "450px"}
 knitr::include_graphics(here('fig', 'movement-distributions'))
 ```
 
@@ -792,11 +793,7 @@ Foraging is characterized by small step lengths with undirected turns.
 Movement trajectories for animals in transit are characterized by longer step lengths and more directed movements. 
 
 Formally, if the vector $\vec{z}_t$ summarizes movement in the interval from time $t$ to $t+1$, it is common to consider $\vec{z}_t$ as a vector containing two quantities: the step size $l_t$ and turning angle $\phi_t$, so that $\vec{z}_t = (l_t, \phi_t)$ [@patterson2017statistical]. 
-Thus, the movement model is a hidden Markov model with states $\{s_t\}_{t=1}^T$, transition probability matrices $\{\vec{\Gamma}^{(t)}\}_{t = 1}^T$, and emissions $\{\vec{z}_t\}_{t=1}^T$ (Fig. \@ref(fig:hmm-general)). 
-
-```{r hmm-general, fig.cap='Graphical representation of the hidden Markov model for animal movement. The behavioral state $s_t$ is associated with a state transition probability matrix $\\vec{\\Gamma}^{(t)}$, with observations $\\vec{z}_t$ that represent the movement trajectory of the animal.', out.width = "250px"}
-knitr::include_graphics(here('fig', 'hmm-general'))
-```
+Thus, the movement model is a hidden Markov model with states $\{s_t\}_{t=1}^T$, transition probability matrices $\{\vec{\Gamma}^{(t)}\}_{t = 1}^T$, and emissions $\{\vec{z}_t\}_{t=1}^T$. 
 
 In the simulation, step sizes were drawn from a gamma distribution with state-dependent parameters  (Fig. \@ref(fig:movement-distributions)B):
 
@@ -843,7 +840,12 @@ $$\text{logit}(\gamma_{2, 1}^{(t)}) = \alpha_{2, 1} + \beta_{2, 1} x_t.$$
 
 Here as before $\gamma_{i, j}^{(t)}$ is the probability of transitioning from state $s_t=i$ to $s_{t+1}=j$. 
 Intercept terms are represented by $\alpha_{i, j}$, and slopes by $\beta_{i, j}$, with $x_t$ representing scaled canopy height. 
+This model uses covariates for transition probabilities in the same way that many do: using a linear combination on a transformed scale (Fig. \@ref(fig:hmm-general)).
 
+
+```{r hmm-general, fig.cap='Graphical representation of a generic hidden Markov models for animal movement. The behavioral state $s_t$ is associated with a state transition probability matrix $\\vec{\\Gamma}^{(t)}$, with observations $\\vec{z}_t$ that represent the movement trajectory of the animal. Inputs contained in a vector $\\vec{x}^{(t)}$ are mapped to the transition probability matrix by a function (usually a linear combination on a transformed scale).', out.width = "250px"}
+knitr::include_graphics(here('fig', 'hmm-general'))
+```
 ### Point extraction model {-}
 
 The point extraction model includes parameters to map the RGB image reflectance values ($r_t$, $g_t$, and $b_t$) to the transition probabilities using a linear combination on the logit scale: 
@@ -853,6 +855,7 @@ $$\text{logit}(\gamma_{1, 2}^{(t)}) = \alpha_{1, 2} + \beta^r_{1, 2} r_t + \beta
 $$\text{logit}(\gamma_{2, 1}^{(t)}) = \alpha_{2, 1} + \beta^r_{2, 1} r_t + \beta^g_{2, 1} g_t + \beta^b_{2, 1} b_t,$$
 
 where $\beta^k_{i, j}$ is a coefficient for the $(i, j)^{th}$ transition probability and image band $k$.
+This model is also representative of the common approach taken to include covariates in such models - via a linear combination on a transformed scale (Fig. \@ref(fig:hmm-general)),
 
 ### Convolutional hidden Markov model {-}
 
@@ -864,8 +867,7 @@ To generate image chip input arrays, square crops from the aerial RGB imagery we
 The spatial footprint of each chip was 128 $\times$ 128 pixels ($\approx$ 13 m $\times$ 13 m). 
 This created a $3 \times 128 \times 128$ array for each point location along each trajectory, where the three channels correspond to reflectance values in the red, green, and blue spectral bands  (Fig. \@ref(fig:example-trajectory)).
 To illustrate the potential for including additional raster data in addition to imagery, an additional band was concatenated to each chip which contained zeros everywhere except for a $2 \times 2$ region in the center of the $128 \times 128$ grid, generating $4 \times 128 \times 128$ arrays. 
-In real applications, this might represent additional raster data relevant to movement -- the point is that the inputs need not be images per se.
-
+In real applications, this might represent additional raster data relevant to movement -- inputs need not be images per se.
 
 ```{r example-trajectory, fig.cap='An example of a simulated movement trajectory. Panel (a) shows the true states and scaled canopy height, which determines the state transition probabilities. Red indicates that the animal is foraging, black indicates that it is in transit. The background color map shows the scaled canopy height. Panel (b) shows 128 by 128 image chips centered on point locations in the high resolution aerial imagery, which are used as inputs in the convolutional hidden Markov model of animal movement. Camera imagery outside of these image chips is shown in a lighter shade.', out.width="550px"}
 knitr::include_graphics(here('fig', 'example-trajectory.png'))
@@ -880,6 +882,33 @@ The resulting $2 \times 2$ matrix is the transition probability matrix $\vec{\Ga
 
 ```{r conv-hmm, fig.cap='A convolutional neural network that maps a raster (in this case a 4 $\\times$ 128 $\\times$ 128 grid) to a state transition probability matrix of a hidden Markov model. Yellow boxes indicate input arrays and outputs from convolutional layers, with labeled dimensions. Red boxes represent two dimensional maximum pooling layers. Purple boxes represent fully connected hidden layers. The final vector of length 4 is reshaped to a 2 by 2 matrix, and then a softmax transform is applied row-wise to ensure that the rows sum to one for the transition probability matrix at timestep $t$, denoted $\\vec{\\Gamma}^{(t)}$.'}
 knitr::include_graphics(here('fig', 'conv_hmm_edited.pdf'))
+```
+
+The precise structure of the convolutional neural network that maps the input raster to the state transition probability matrix was as follows (in PyTorch-like psuedocode): 
+
+```python
+Sequential(
+  Conv2d(4, 16, kernel_size=9, stride=3), 
+  LeakyReLU(),
+  MaxPool2d(kernel_size=3, stride=2),
+  Conv2d(16, 32, kernel_size=5), 
+  LeakyReLU(),
+  MaxPool2d(kernel_size=3, stride=2),
+  Conv2d(32, 64, kernel_size=3), 
+  LeakyReLU(),
+  MaxPool2d(kernel_size=3, stride=2)
+  view(-1), # flatten into a vector
+  Dropout(),
+  Linear(64 * 2 * 2, 128),
+  LeakyReLU(),
+  Dropout(),
+  Linear(128, 64),
+  LeakyReLU(),
+  Dropout(),
+  Linear(64, 4),
+  view(2, 2), 
+  softmax(dim=-1)
+)
 ```
 
 In addition to using dropout to regularize the convolutional model, an $L_2$ penalty of $10^{-6}$ was also applied. 
@@ -912,14 +941,14 @@ Final predictive checks on the withheld test set indicated that the convolutiona
 Transition probabilities from "in transit" ($s_t=1$) to "foraging" ($s_t=2$) were not captured as well as transitions from "foraging" ($s_t=2$) to "in transit" ($s_t=1$) (Fig. \@ref(fig:transition-densities)).
 In particular, the estimated distribution of transition probabilities was bimodal, but not as sharply peaked as the distribution of true transition probabilities.
 
-```{r transition-densities, fig.cap='Joint densities of true (x-axis) and estimated (y-axis) state transition probabilities in the final convolutional movement model. Panel (a) shows the distribution for $\\gamma_{1, 2}$ (transitions to "foraging"), with marginal histograms for the true and estimated probabilities. Panel (b) shows the same for $\\gamma_{2, 1}$ (transitions to "in transit"). '}
+```{r transition-densities, fig.cap='Joint densities of true (x-axis) and estimated (y-axis) state transition probabilities in the final convolutional movement model. Panel (a) shows the distribution for $\\gamma_{1, 2}$ (transitions to "foraging"), with marginal histograms for the true and estimated probabilities. Panel (b) shows the same for $\\gamma_{2, 1}$ (transitions to "in transit"). Cell color represents the density of observations, with brighter colors indicating higher densities.'}
 knitr::include_graphics(here('fig', 'transition-densities.png'))
 ```
 
 Last, to provide a qualitative sense of what the final model had learned, test set image chips with the highest predicted transition probabilities are visualized in Fig. \@ref(fig:top-prob-chips).
 Consistent with the underlying generative model, image chips centered on tree canopies were associated with the highest probabilities of transitioning into the "foraging" state, and image chips centered on bare ground (often with intermittent rocks) were associated with the highest probabilities of transitioning into the "in transit" state.
 
-```{r top-prob-chips, fig.cap='Top eight test set image chips with the highest probabilities of transitioning into \"in transit\" from \"foraging\" (a), and from \"in transit\" to \"foraging\" (b).', out.width="450px"}
+```{r top-prob-chips, fig.cap='Top eight test set image chips with the highest probabilities of transitioning (a) from a \"foraging\" state to \"in transit\", and (b) from \"in transit\" to \"foraging\".', out.width="450px"}
 knitr::include_graphics(here('fig', 'top-prob-chips.png'))
 ```
 
