@@ -1,0 +1,272 @@
+---
+params:
+  preprint: false
+title: 'Appendix S2'
+subtitle: "Neural hierarchical models of ecological populations"
+author: "Maxwell B. Joseph"
+bibliography: library.bib
+output: 
+  bookdown::pdf_document2:
+    keep_tex: TRUE
+    toc: FALSE
+fontsize: 12pt
+csl: ecology-letters.csl
+---
+
+```{r s2-setup, echo = FALSE, results='hide', message=FALSE}
+library(here)
+knitr::opts_chunk$set(fig.align='center', echo = FALSE)
+```
+
+\renewcommand{\vec}[1]{\mathbf{#1}}
+
+
+`r if (params$preprint) "# Appendix S2 {-}"`
+
+
+\setcounter{figure}{0}
+\makeatletter 
+\renewcommand{\thefigure}{S2.\@arabic\c@figure}
+\makeatother
+
+This appendix describes an animal movement model parameterized by a convolutional neural network, including simulations to explore how the amount of training data affects performance relative to simpler baseline models. 
+Convolutional neural networks (CNNs) are widely used in computer vision applications, acting as function approximators that take an image as input and output a vector of probabilities that the image is a picture of a cat, dog, car, etc. [@rawat2017deep]. 
+In ecological contexts, CNNs have been used to identify plants and animals [@norouzzadeh2018automatically; @fricker2019convolutional; @tabak2019machine]. 
+However, CNNs considered more broadly as function approximators have additional uses. 
+For example, instead of mapping an image to a vector of class probabilities, a CNN might map an image to a state transition probability matrix in a hidden Markov model, such as those used for animal movement trajectories [@zucchini2017hidden]. 
+
+Generally, the movement of an individual animal depends on the spatiotemporal context around their location at any time, and on their behavioral state. 
+In many animal movement models, covariates for the state transitions are included using a linear combination of values followed by a softmax transformation to ensure probabilities within rows of a state transition probability matrix sum to one. 
+This allows inference about spatiotemporal covariates that explain movement such as distance to water, temperature, hour of day, wind, and ocean surface current [@patterson2017statistical; @johnson2018continuous; @mcclintock2018momentuhmm].
+In most cases, only the values of the covariates at point locations get used. 
+However, it is reasonable to expect that the spatiotemporal context around these point locations could also be relevant. 
+
+Instead of extracting values at points, consider using gridded raster data around point locations such as image "chips" centered around observed point locations containing contextual data within some spatiotemporal window.
+Input rasters might contain satellite and/or aerial imagery, continuous or categorical landscape features (e.g., a digital elevation model or land cover map), or meteorological data (e.g., gridded temperature or wind speed data). 
+
+## Scenario description {-}
+
+Consider an animal that prefers to forage in and around tree canopies, but frequently moves between canopies over bare ground. 
+To generate a semi-realistic simulation of this scenario, movement trajectories were simulated over vegetation canopy height models from the San Joaquin Experimental Reserve, one of the core National Ecological Observatory Network (NEON) sites [@keller2008continental]. 
+These canopy height models are estimated using lidar data on the NEON Airborne Observation Platform (AOP) - a plane that flies over NEON sites regularly and collects a variety of data, including high resolution orthorectified aerial imagery  (Fig. \@ref(fig:chm-rgb)). 
+
+```{r chm-rgb, fig.cap='An example of a 1 m pixel resolution canopy height model (left) and corresponding high resolution (10 cm) orthorectified camera imagery over the San Joaquin Experimental Reserve. In the simulation, canopy height affects behavioral state transitions and subsequent animal movement, but the available data might consist only of aerial imagery. A 250 m by 250 m subset of the study area is displayed.', out.width = "420px"}
+knitr::include_graphics(here('fig', 'chm-rgb.png'))
+```
+
+In this simulation, the "correct" covariate data that affects state transitions -- which is rarely known in real systems -- is the height of the tree canopy. 
+Assume that canopy height is unknown, but aerial imagery (or high resolution satellite imagery) is available. 
+This aerial red-green-blue (RGB) imagery should to relate in some way to canopy height, but the mapping from an RGB image to canopy height is likely complex. 
+This provides an opportunity to test whether a convolutional neural hierarchical model can learn such a mapping using information about animal movement. 
+
+## Simulating animal movement through tree canopies {-}
+
+Individual animal movement trajectories were simulated over a real canopy height model of the San Joaquin Experimental Reserve. 
+The spatial region of interest is a 6 km by 5 km region, within which a 2018 NEON AOP mission was flown that generated a coregistered 1 m canopy height model (product code DP3.30015.001), and 10 cm high resolution orthorectified RGB camera reflectance data (product code DP3.30010.001). 
+Due to some extreme outliers in the canopy height model, all values greater than 30m (~0.0025% of cells) were set to 30m. 
+Then, the resulting raster was max-scaled (dividing by the maximum) to compress the range of values to the interval [0, 1].
+
+An animal movement model with two states (foraging and in transit) was used to simulate trajectory data. 
+Animals were more likely to forage where the canopy is high, and more likely to be in transit where canopy height is low. 
+
+### Behavioral states {-}
+
+Formally, consider a time series of length $T$ containing the state of an animal at discrete times $t=1,...,T$, where $s_t = 1$ means the animal is "in transit" and $s_t = 2$ means the animal is "foraging" at time $t$. 
+The state $s_t$ is either 1 or 2 for any particular $t$. 
+The probabilities of transitioning between states is time-varying, and is summarized in a matrix $\vec{\Gamma}^{(t)}$, which contains the transition probabilities $\gamma_{i, j}^{(t)}$ for states $i, j = 1, 2$ at time $t$. 
+Each of these elements provides the probability of transitioning from one state to another, so that $\gamma_{i, j}^{(t)} = [s_{t + 1} = j \mid s_{t} = i]$. 
+For example $\gamma_{1, 2}^{(t)}$ would provide the probability of transitioning from "in transit" in time $t$ ($s_t = 1$) to "foraging" in time $t+1$ ($s_{t + 1} = 2$).
+At the first timestep, the state probabilities are contained in a row vector $\delta$, where $\delta_i = [s_{t = 1} = i]$, for states $i=1$ and $i=2$.
+In the simulation, the stationary state probabilities at randomly initialized starting locations were used as initial state probabilities. 
+
+To ensure that "foraging" was the more likely state in the canopy, and "in transit" was the most likely state over bare ground, the true state transition probabilities in the simulation were modeled as a logit-linear function of canopy height: 
+
+$$\text{logit}(\gamma_{1, 2}^{(t)}) = -6 + 40x_t,$$
+$$\text{logit}(\gamma_{2, 1}^{(t)}) = 6 - 40x_t,$$
+
+where $x_t$ is the scaled canopy height at an animal's location in time $t$ (Fig. \@ref(fig:movement-distributions)A).
+This fully specifies the state transition matrix, because the rows must sum to one, implying for example that $\gamma_{1, 1}^{(t)} = 1 - \gamma_{1, 2}^{(t)}$.
+
+```{r movement-distributions, fig.cap='Panel A shows the true relationship between scaled canopy height (x-axis) and state transition probabilities in the simulation. Panels B and C show the densities of step sizes (B) and turn angles in radians (C) used in the simulation, colored by behavioral state.', out.width = "420px"}
+knitr::include_graphics(here('fig', 'movement-distributions.pdf'))
+```
+
+### State-dependent movement {-}
+
+The "foraging" and "in transit" behavioral states are associated with different movement patterns. 
+Foraging is characterized by small step lengths with undirected turns. 
+Movement trajectories for animals in transit are characterized by longer step lengths and more directed movements. 
+
+Formally, if the vector $\vec{z}_t$ summarizes movement in the interval from time $t$ to $t+1$, it is common to consider two quantities: the step size $l_t$ and turning angle $\phi_t$, so that $\vec{z}_t = (l_t, \phi_t)$ [@patterson2017statistical]. 
+Thus, the movement model is a hidden Markov model with states $\{s_t\}_{t=1}^T$, transition probability matrices $\{\vec{\Gamma}^{(t)}\}_{t = 1}^T$, and emissions $\{\vec{z}_t\}_{t=1}^T$. 
+
+In the simulation, step sizes were drawn from a gamma distribution with state-dependent parameters  (Fig. \@ref(fig:movement-distributions)B):
+
+$$l_t \sim \begin{cases}
+\text{Gamma}(10, 1) \quad \text{if} \quad s_t = 1 \; (\text{"in transit"})\\
+\text{Gamma}(10, 5) \quad \text{if} \quad s_t = 2 \; (\text{"foraging"})
+\end{cases},$$
+
+for $t=1, ..., T$. 
+Turn angles were drawn from von Mises distributions with state-dependent parameters (Fig. \@ref(fig:movement-distributions)C):
+
+$$\phi_t \sim \begin{cases}
+\text{von Mises}(0, 20) \quad \text{if} \quad s_t = 1 \; (\text{"in transit"})\\
+\text{von Mises}(0, 0.1) \quad \text{if} \quad s_t = 2 \; (\text{"foraging"})
+\end{cases},$$
+
+for $t=2, ..., T$. 
+Initial movement directions (at $t=1$) were randomly drawn from the uniform circular distribution, though strictly speaking these are not turn angles which require three points to compute. 
+
+Trajectories simulated within the study area were partitioned into three sets based on the northing coordinate boundaries of the trajectory extents. 
+Trajectories in the northern third of the study area were assigned to the training set, those in in the southern third were used as a withheld test set, and those in the middle third were used as a validation set (Fig. \@ref(fig:traj-plot)). 
+For each partition, 1024 trajectories were simulated, to generate 3072 total trajectories across all partitions. 
+
+```{r traj-plot, fig.cap='Map of the simulated trajectories in space, colored by dataset partition.', out.width = "420px"}
+knitr::include_graphics(here('fig', 'traj-plot.png'))
+```
+
+## Model descriptions {-}
+
+Three models were developed, each of which maps a different set of inputs to transition probability matrices: 
+
+1. A **best case model** that takes canopy height as a state transition covariate. This represents the perfect scenario (unlikely in practice) where all relevant spatiotemporal information is provided to the model, and the generative model is correctly specified in every way. This best case model provides a useful upper bound on predictive performance. 
+2. A **point extraction model** that takes the RGB reflectance values from the aerial imagery extracted at point locations. This represents a more common scenario where covariate data indirectly related to the relevant spatiotemporal information (canopy height) are extracted at point locations. This model is likely to perform poorly, as the RGB reflectance at a point location may not contain much information about canopy height. 
+3. A **convolutional hidden Markov model** that takes image chips centered on point locations as input, and maps these image chips to transition matrices using a convolutional neural network. If RGB image chips contain more information about canopy height than simple RGB point extractions and sufficient training data are available, this model should perform better than the point extraction model. 
+
+
+### Best case model {-}
+
+The best case model is the generative model for simulated trajectories. 
+The relationship between canopy height and state transition probabilities is logit linear (as in the simulation), and intercept and slope parameters are estimated: 
+
+$$\text{logit}(\gamma_{1, 2}^{(t)}) = \alpha_{1, 2} + \beta_{1, 2} x_t,$$
+$$\text{logit}(\gamma_{2, 1}^{(t)}) = \alpha_{2, 1} + \beta_{2, 1} x_t.$$
+
+Here as before $\gamma_{i, j}^{(t)}$ is the probability of transitioning from state $s_t=i$ to $s_{t+1}=j$. 
+Intercept terms are represented by $\alpha_{i, j}$, and slopes by $\beta_{i, j}$, with $x_t$ representing scaled canopy height. 
+This model uses covariates for transition probabilities in the same way that many do: using a linear combination on a transformed scale (Fig. \@ref(fig:hmm-general)).
+
+
+```{r hmm-general, fig.cap='Graphical representation of a generic hidden Markov models for animal movement. The behavioral state $s_t$ is associated with a state transition probability matrix $\\vec{\\Gamma}^{(t)}$, with observations $\\vec{z}_t$ that represent the movement trajectory of the animal. Inputs contained in a vector $\\vec{x}^{(t)}$ are mapped to the transition probability matrix by a function (usually a linear combination on a transformed scale).', out.width = "250px"}
+knitr::include_graphics(here('fig', 'hmm-general.pdf'))
+```
+### Point extraction model {-}
+
+The point extraction model includes parameters to map the RGB image reflectance values ($r_t$, $g_t$, and $b_t$) to the transition probabilities using a linear combination on the logit scale: 
+
+$$\text{logit}(\gamma_{1, 2}^{(t)}) = \alpha_{1, 2} + \beta^r_{1, 2} r_t + \beta^g_{1, 2} g_t + \beta^b_{1, 2} b_t,$$
+
+$$\text{logit}(\gamma_{2, 1}^{(t)}) = \alpha_{2, 1} + \beta^r_{2, 1} r_t + \beta^g_{2, 1} g_t + \beta^b_{2, 1} b_t,$$
+
+where $\beta^k_{i, j}$ is a coefficient for the $(i, j)^{th}$ transition probability and image band $k$.
+This model is also representative of the common approach taken to include covariates in such models - via a linear combination on a transformed scale (Fig. \@ref(fig:hmm-general)),
+
+### Convolutional hidden Markov model {-}
+
+The convolutional hidden Markov model is a neural hierarchical model that maps an image chip $\vec{X}^{(t)}$ centered on an animal's location at time $t$ to a transition probability matrix $\vec{\Gamma}^{(t)}$.
+This is a departure from the previous two models. 
+The input $\vec{X}^{(t)}$ is a multidimensional array instead of a real number (in the best case model) or a numeric vector (containing RGB reflectances in the point extraction model).
+
+To generate image chip input arrays, square crops from the aerial RGB imagery were created centered on each simulated location. 
+The spatial footprint of each chip was 128 $\times$ 128 pixels ($\approx$ 13 m $\times$ 13 m). 
+This created a $3 \times 128 \times 128$ array for each point location along each trajectory, where the three channels correspond to reflectance values in the red, green, and blue spectral bands  (Fig. \@ref(fig:example-trajectory)).
+To illustrate the potential for including additional raster data in addition to imagery, an additional band was concatenated to each chip which contained zeros everywhere except for a $2 \times 2$ region in the center of the $128 \times 128$ grid, generating $4 \times 128 \times 128$ arrays. 
+In real applications, this might represent additional raster data relevant to movement -- inputs need not be images per se.
+
+```{r example-trajectory, fig.cap='An example of a simulated movement trajectory. Panel (a) shows the true states and scaled canopy height, which determines the state transition probabilities. Red indicates that the animal is foraging, black indicates that it is in transit. The background color map shows the scaled canopy height. Panel (b) shows 128 by 128 image chips centered on point locations in the high resolution aerial imagery, which are used as inputs in the convolutional hidden Markov model of animal movement. Camera imagery outside of these image chips is shown in a lighter shade.', out.width="420px"}
+knitr::include_graphics(here('fig', 'example-trajectory.png'))
+```
+
+The convolutional hidden Markov model for animal movement mapped these $4 \times 128 \times 128$ image chips to $2 \times 2$ state transition probability matrices $\{ \vec{\Gamma}^{(t)} \}_{t = 1}^T$ (Fig. \@ref(fig:conv-hmm)). 
+The architecture of the convolutional neural network is a simplified version of the AlexNet model that plays an important role in the history of deep learning in computer vision [@krizhevsky2014one], though more modern architectures might perform better. 
+Briefly, the input image is passed through a series of 2-dimensional convolutions, followed by nonlinear activation functions, followed by 2d max-pooling layers, creating a $64 \times 2 \times 2$ lower spatial resolution array with many "channels". 
+This three dimensional array is flattened to a one dimensional array, creating a vector of length $64 \times 2 \times 2$, which is then passed to a series of fully connected hidden layers with nonlinear activations and dropout regularization [@srivastava2014dropout] to create a vector of length 4. 
+This vector is reshaped to a $2 \times 2$ matrix, then a softmax transformation is applied row-wise to ensure that the row probabilities sum to one (as they should in a state transition probability matrix). 
+The resulting $2 \times 2$ matrix is the transition probability matrix $\vec{\Gamma}^{(t)}$, generated from the input $\vec{X}^{(t)}$.
+
+```{r conv-hmm, fig.cap='A convolutional neural network that maps a raster (in this case a 4 $\\times$ 128 $\\times$ 128 grid) to a state transition probability matrix of a hidden Markov model. Yellow boxes indicate input arrays and outputs from convolutional layers, with labeled dimensions. Red boxes represent two dimensional maximum pooling layers. Purple boxes represent fully connected hidden layers. The final vector of length 4 is reshaped to a 2 by 2 matrix, and then a softmax transform is applied row-wise to ensure that the rows sum to one for the transition probability matrix at timestep $t$, denoted $\\vec{\\Gamma}^{(t)}$.'}
+knitr::include_graphics(here('fig', 'conv_hmm_edited.pdf'))
+```
+
+The precise structure of the convolutional neural network that maps the input raster to the state transition probability matrix was as follows (in PyTorch-like psuedocode): 
+
+```python
+Sequential(
+  Conv2d(4, 16, kernel_size=9, stride=3), 
+  LeakyReLU(),
+  MaxPool2d(kernel_size=3, stride=2),
+  Conv2d(16, 32, kernel_size=5), 
+  LeakyReLU(),
+  MaxPool2d(kernel_size=3, stride=2),
+  Conv2d(32, 64, kernel_size=3), 
+  LeakyReLU(),
+  MaxPool2d(kernel_size=3, stride=2)
+  view(-1), # flatten into a vector
+  Dropout(),
+  Linear(64 * 2 * 2, 128),
+  LeakyReLU(),
+  Dropout(),
+  Linear(128, 64),
+  LeakyReLU(),
+  Dropout(),
+  Linear(64, 4),
+  view(2, 2), 
+  softmax(dim=-1)
+)
+```
+
+In addition to using dropout to regularize the convolutional model, an $L_2$ penalty of $10^{-5}$ was also applied. 
+To further regularize the model, image augmentation (random horizontal and vertical flips) was also applied while training, though this might not be desirable in cases where directional orientation of the input image is important [@simonyan2014very]. 
+Image augmentation generally includes strategies to perturb data while training computer vision models in an attempt to generate a robust model (i.e., one that is insensitive to translation, orientation, hue, contrast, etc.).
+
+In contrast to more common applications of convolutional neural networks where individual images are labeled (e.g., with bounding boxes and species identities in camera trap imagery), the observed movement trajectories (step sizes and turning angles) can be thought of as analogous to implicit "labels" for this convolutional hidden Markov model. 
+
+## Model comparisons {-}
+
+The predictive performance of the three models (best case, point extraction, and convolutional) was compared across a gradient of training set sizes. 
+This gradient included datasets that consisted of 16, 32, 64, 128, 256, 512, and 1024 simulated trajectories, each of which consisted of 50 timesteps. 
+The smaller datasets were subsets of the larger datasets.
+For each model/training set combination, predictive performance was evaluated using the out of sample log-likelihood, computed for the 1024 withheld validation trajectories using the forward algorithm [@patterson2017statistical]. 
+After using the validation data to compare models, the preferred model was retrained using the training and validation data, and final predictive performance was evaluated on the still withheld test set. 
+
+## Results {-}
+
+As the training set increased in size to more than 64 trajectories, the convolutional movement model's performance exceeded the point extraction baseline (Fig. \@ref(fig:conv-hmm-perf)). 
+When the training set was relatively small, the convolutional movement model performed worse than the point extraction baseline. 
+Validation set performance continued to increase as training data were added for all models. 
+The rate of increase was greatest for the convolutional model, however, and validation set performance did not appear to saturate even for the largest training data set (Fig. \@ref(fig:conv-hmm-perf)).
+As expected, the best case model, which is correctly specified and has access to the "correct" input data (canopy height) always had the highest performance.
+But, restricting attention to models that only have access to the RGB imagery, the convolutional movement model was preferred. 
+
+```{r conv-hmm-perf, fig.cap='Model performance on withheld validation data. The x-axis is the number of movement trajectories in the training data. The y-axis shows the performance (predictive log-likelihood) on withheld validation data. Each point is the result of a simulation, and colored lines connect results for each model. ConvHMM is the convolutional hidden Markov model of animal movement.'}
+knitr::include_graphics(here('fig', 'convhmm-perf.pdf'))
+```
+
+Final predictive checks on the withheld test set indicated that the convolutional model was able to estimate the true state transition probabilities fairly well.
+Transition probabilities from "in transit" ($s_t=1$) to "foraging" ($s_t=2$) were not captured as well as transitions from "foraging" ($s_t=2$) to "in transit" ($s_t=1$) (Fig. \@ref(fig:transition-densities)).
+In particular, the estimated distribution of transition probabilities was bimodal, but not as sharply peaked as the distribution of true transition probabilities.
+
+```{r transition-densities, fig.cap='Joint densities of true (x-axis) and estimated (y-axis) state transition probabilities in the final convolutional movement model for the withheld test set. Panel (a) shows the distribution for $\\gamma_{1, 2}$ (transitions to "foraging"), with marginal histograms for the true and estimated probabilities. Panel (b) shows the same for $\\gamma_{2, 1}$ (transitions to "in transit"). Cell color represents the density of observations, with brighter colors indicating higher densities.', out.width = "420px"}
+knitr::include_graphics(here('fig', 'transition-densities.png'))
+```
+
+Last, to provide a qualitative sense of what the final model had learned, test set image chips with the highest predicted transition probabilities are visualized in Fig. \@ref(fig:top-prob-chips).
+Consistent with the underlying generative model, image chips centered on tree canopies were associated with the highest probabilities of transitioning into the "foraging" state, and image chips centered on bare ground (often with intermittent rocks) were associated with the highest probabilities of transitioning into the "in transit" state.
+
+```{r top-prob-chips, fig.cap='Top nine test set image chips with the highest probabilities of transitioning (a) from a \"foraging\" state to \"in transit\", and (b) from \"in transit\" to \"foraging\".', out.width="420px"}
+knitr::include_graphics(here('fig', 'top-prob-chips.png'))
+```
+
+Taken together, these results indicate that simpler models might perform better when limited training data are available, but that neural hierchical models might provide predictive performance improvements for large datasets.
+
+## Implementation notes {-}
+
+The best case and point extraction models were both fit using the `momentuHMM` R package [@momentuHMM2018]. 
+The convolutional movement model was implemented with PyTorch [@paszke2017automatic]. 
+All code required to reproduce the analysis is available on GitHub at [https://www.github.com/mbjoseph/neuralecology](https://www.github.com/mbjoseph/neuralecology). 
+
+`r if (!params$preprint) "## Literature cited {-}"`
+`r if (!params$preprint) "<div id='refs'></div>"`
+
+\clearpage

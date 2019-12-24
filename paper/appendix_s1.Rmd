@@ -1,0 +1,273 @@
+---
+params:
+  preprint: false
+title: "Appendix S1"
+subtitle: "Neural hierarchical models of ecological populations"
+author: "Maxwell B. Joseph"
+output: 
+  bookdown::pdf_document2:
+    keep_tex: TRUE
+    toc: FALSE
+bibliography: library.bib
+fontsize: 12pt
+csl: ecology-letters.csl
+---
+
+\renewcommand{\vec}[1]{\mathbf{#1}}
+
+`r if (params$preprint) "# Appendix S1 {-}"`
+
+\setcounter{figure}{0}
+\makeatletter 
+\renewcommand{\thefigure}{S1.\@arabic\c@figure}
+\makeatother
+
+This appendix includes example specifications for neural occupancy, N-mixture, and hidden Markov models. 
+The goal in providing these specifications is to give concrete examples of neural hierarchical models that are relatively simple, while drawing connections to existing models. 
+PyTorch implementations in Jupyter notebooks are available at https://github.com/mbjoseph/neuralecology.
+
+Generally, the construction of a hierarchical model requires: 
+
+1. A **process model** that represents some ecological dynamics or states that can depend on unknown parameters. 
+2. An **observation model** that relates available data to the process model, possibly dependent on unknown parameters.
+3. A **parameter model** for unknown quantities (e.g., their dependence on some input, or relationship to each other). Traditionally, this is discussed in terms of prior distributions, though there may be rich structure encoded in a parameter model as well [@wikle2003hierarchical]. For a fully Bayesian hierarchical model, all unknowns are represented by probability distributions. In an empirical Bayesian hierarchical model, point estimates are typically used for top-level parameters instead, so that these top-level parameters are treated as fixed, but unknown [@cressie2009accounting]. In the examples below, neural networks are applied at the parameter model stage to learn a mapping from inputs to parameters of process and observation models. 
+
+Given these components, parameter estimation can proceed in a few ways, depending on the inferential framework used.
+A loss function can be constructed to find the parameter values that maximize the probability of the data, possibly with some penalties for model complexity (in a maximum likelihood/penalized maximum likelihood framework), find the most probable parameter values, conditional on the data (in a maximum *a posteriori* framework), or compute a probability distribution for all unknowns, conditional on the data (in a Bayesian framework). 
+For many models applied in deep learning, it is often the case that fully Bayesian inference is complicated by high-dimensional multimodal posterior geometry.
+
+The examples here focus primarily on penalized maximum likelihood methods, though Bayesian approaches stand out as a key area for future work (see main text for relevant citations).
+Often, $L_2$ norm penalties (also referred to as "weight decay") are applied on the parameters of neural networks in the loss function to penalize model complexity in an effort to avoid overfitting. 
+Additional strategies include early stopping, where an iterative stochastic optimization scheme is terminated before the training set loss stabilizes (or when the validation set loss begins to increase), which is particularly useful for complex models that can overfit quickly. 
+Finally, unlike maximum likelihood estimation for simple models, because of the multimodality of the likelihood surface for neural network parameters, there are no guarantees that a global maximum exists, or that a particular optimum is not a local maximum. 
+In practice, this is not a major limitation.
+For more discussion, see @goodfellow2016deep.
+
+## A single-species single-season neural occupancy model {-}
+
+A single-species single-season occupancy model estimates presence/absence states from imperfect detection/non-detection data [@mackenzie2002estimating].
+Assume that $n$ spatial locations are each surveyed $k$ times, during a short time interval for which it is reasonable to assume that the presence or absence of a species is constant. 
+Each spatial location has some continuous covariate value represented by $x_i$ for site $i=1,...,n$, that relates to occupancy and detection probabilities. 
+
+### Observation model {-}
+
+Observations at site $i$ consist of $k$ surveys, where each survey results in a detection or non-detection. 
+Let $y_i$ represent the number of surveys at site $i$ for which a species is detected, and $z_i$ represent the true presence/absence state (if the species is present: $z_i=1$; if absent: $z_i=0$).
+Assuming that the probability of detecting a species on a survey conditional on presence is $p_i$, and that each survey is conditionally independent, the observations can be modeled with a Binomial distribution: 
+
+$$y_i \sim \text{Binomial}(z_i p_i, k).$$
+
+### Process model {-}
+
+The true presence/absence occupancy state $z$ can be treated as a Bernoulli random variable, with occupancy probability $\psi_i$: 
+
+$$z_i \sim \text{Bernoulli}(\psi_i).$$
+
+### Parameter model {-}
+
+A simple approach to account for the effect of the site-level covariate on occupancy and detection would be to include a slope and intercept parameter specific to each component, using the logit function to ensure that estimated probabilities are bounded between 0 and 1: 
+
+$$\psi_i = \text{logit}^{-1} \big( \alpha^{(\psi)} + \beta^{(\psi)} x_i \big),$$
+$$p_i = \text{logit}^{-1} \big( \alpha^{(p)} + \vec{\beta}^{(p)} x_i \big),$$
+
+where $\alpha^j$ and $\beta^j$ are intercept and slope parameters for component $j$. 
+
+In contrast, a neural hierarchical model might instead account for site-level variation by modeling occupancy and detection probabilities as outputs of a neural network: 
+
+$$\begin{bmatrix}
+   \psi_i \\
+   p_i 
+ \end{bmatrix} = f(x_i),$$
+
+where $f(x_i)$ is a neural network that takes a scalar as input (the site-level covariate $x_i$) and outputs a two dimensional vector containing occupancy and detection probabilities:
+
+$$f(x_i) = \text{logit}^{-1} \big( \vec{W}^{(2)} g(\vec{W}^{(1)} x_i) \big),$$
+
+where $\vec{W}^{(1)}$ and $\vec{W}^{(2)}$ are parameter matrices for the first and second layer, $g$ is a differentiable nonlinear activation function, e.g., the rectified linear unit activation function [@nair2010rectified], and the inverse logit transform is applied element-wise to ensure that $\psi_i$ and $p_i$ lie between 0 and 1. 
+
+
+### Loss function {-}
+
+The negative log observed data likelihood can be taken as the loss function [@mackenzie2002estimating]. 
+Marginalizing over $z$ and treating sites as conditionally independent yields: 
+
+$$L(\theta_f) = - \sum_{i = 1}^{n} \log\ \Big ( \psi_i \text{Binomial}(y_i \mid p_i, k) + I(y_i = 0) (1 - \psi_i)\Big),$$
+
+where $\theta_f$ represents the parameters of the neural network $f$, and $I(y_i=0)$ is an indicator function equal to one when $y_i = 0$ (zero otherwise). 
+
+The loss for any particular site can be computed efficiently using the log-sum-exp trick, which is particularly useful when the log of summands is available (i.e., $\log(\psi_i) + \log \binom{k}{y_i} + y_i \log(p_i) + \log(k - y_i) + \log(1 - p_i)$ and $\log(1 - \psi_i)$ are already computed), as is the case in both Stan and PyTorch, which provide the log probability from the Binomial distribution.
+
+
+## A single-species neural dynamic occupancy model {-}
+
+A single-species dynamic occupancy model can be used to estimate rates of colonization and extinction when detection is imperfect and sites are repeatedly sampled at multiple time points [@mackenzie2003estimating]. 
+Assume that for $T$ timesteps, $n$ spatial locations are each surveyed $k$ times, during a short time interval for which it is reasonable to assume that the presence or absence state is constant. 
+Among timesteps, the true occupancy states of sites can change. 
+Each spatial location has some continuous covariate value represented by $x_i$ for site $i=1,...,n$, that relates to occupancy and detection probabilities. 
+
+### Observation model {-}
+
+Observations at site $i$ in timestep $t$ consist of $k$ surveys, where each survey results in a detection or non-detection. 
+Let $y_{i,t}$ represent the number of surveys at site $i$ in timestep $t$ for which a species is detected, and $z_{i, t}$ represent the true presence/absence state (if the species is present: $z_{i, t}=1$; if absent: $z_{i,t}=0$).
+Assuming that the probability of detecting a species on a survey conditional on presence is $p_i$, the observations can be modeled using a Binomial distribution: 
+
+$$y_{i, t} \sim \text{Binomial}(z_{i, t} p_i, k).$$
+
+
+### Process model {-}
+
+Sites can transition from being unoccupied ($z_{i,t} = 0$) to occupied ($z_{i, t + 1} = 1$) due to colonization, or from being occupied ($z_{i, t} = 1$) to unoccupied ($z_{i, t + 1} = 0)$ due to extinction.
+Let the initial occupancy state be treated as a random Bernoulli variable with probability of occupancy $\psi_{i, 1}$:
+
+$$z_{i, 1} \sim \text{Bernoulli}(\psi_{i, 1}).$$
+
+Subsequent occupancy dynamics at site $i$ for timesteps $t=1, ..., T$ are related to the probability of colonization ($\gamma_i$) and the probability of persistence ($\phi_i$), where the extinction probability is taken to be the complement of persistence ($1 - \phi_i$).
+
+$$z_{i, t} \sim \text{Bernoulli}(z_{i, t - 1} \phi_i + (1 - z_{i, t - 1}) \gamma_i).$$
+
+### Parameter model {-}
+
+In this example, heterogeneity among sites was accounted for using a single layer neural network that ingests the one dimensional covariate $x_i$ for site $i$, passes it through a single hidden layer, and outputs a four dimensional vector of probabilities containing the probabilities of initial occupancy ($\psi_{i, 1}$), persistence ($\phi_i$), colonization ($\gamma_i$), and detection ($p_i$):
+
+$$
+\begin{bmatrix}
+   \psi_{i, 1} \\
+   \phi_i \\
+   \gamma_i \\
+   p_i
+ \end{bmatrix} = f(x_i),
+$$
+where $f$ is a neural network. 
+Concretely, $f$ was parameterized as follows: 
+
+$$f(x_i) = \text{logit}^{-1} \Big( \vec{W}^{(2)} g(\vec{W}^{(1)} x_i ) \Big),$$
+
+where $\vec{W}^{(1)}$ is a parameter matrix that generates activations from the inputs, $g$ is the ReLU activation function, $\vec{W}^{(2)}$ is a parameter matrix that maps the hidden layer to the outputs, and $\text{logit}^{-1}$ is the element-wise inverse logistic (sigmoid) function.
+
+
+
+### Loss function {-}
+
+The negative log observed data likelihood was used as the loss function, implemented in PyTorch following the description in @mackenzie2003estimating (equation 5-6), assuming that detection histories for site $i = 1, ..., n$ are conditionally independent and scaling the forward probabilities to avoid underflow as described in @rabiner1989tutorial.
+
+
+## A neural N-mixture model {-}
+
+An N-mixture model can be used to estimate latent integer-valued abundance when unmarked populations are repeatedly surveyed and it is assumed that detection of individuals is imperfect [@royle2004n]. 
+Assume that $J$ spatial locations are each surveyed $K$ times, in a short time interval for which it is reasonable to assume that the number of individuals is constant within locations $j=1, ..., J$. 
+Each spatial location has some continuous covariate value represented by $x_j$, that relates to detection probabilities and expected abundance. 
+
+### Observation model {-}
+
+Observations at site $j$ in survey $k$ yield counts of the number of unique individuals detected, denoted $y_{j, k}$ for all $j$ and all $k$. 
+Assuming that the detection of each individual is conditionally independent, and that each individual is detected with site-specific probability $p_j$, the observations can be modeled with a Binomial distribution where the number of trials is the true (latent) population abundance $n_j$: 
+
+$$y_{j, k} \sim \text{Binomial}(p_j, n_j).$$
+
+
+### Process model {-}
+
+The true population abundance $n_j$ is treated as a Poisson random variable with expected value $\lambda_j$:
+
+$$n_j \sim \text{Poisson}(\lambda_j).$$
+
+### Parameter model {-}
+
+Heterogeneity among sites was accounted for using a single layer neural network that ingests the one dimensional covariate $x_i$ for site $i$, passes it through a single hidden layer, and outputs a two dimensional vector containing a detection probability $p_i$ and the expected abundance $\lambda_i$:
+
+$$
+\begin{bmatrix}
+   \lambda_i \\
+   p_i
+ \end{bmatrix} = f(x_i),
+$$
+
+where $f$ is a neural network with two dimensional output activations $\vec{h}(x_i)$ computed via: 
+
+$$\vec{h}(x_i) = \vec{W}^{(2)} g(\vec{W}^{(1)} x_i ),$$
+and final outputs computed using the log and logit link functions for expected abundance and detection probability:
+
+$$f(x_i) = \begin{bmatrix}
+   \text{exp}(h_1(x_i)) \\
+   \text{logit}^{-1}(h_2(x_i))
+ \end{bmatrix}.$$
+
+
+Here too $\vec{W}^{(1)}$ is a parameter matrix that generates activations from the inputs, $g$ is the rectified linear unit activation function, and $\vec{W}^{(2)}$ is a parameter matrix that maps the hidden layer to the outputs.
+Additionally $h_1(x_i)$ is the first element of the output activation vector, and $h_2(x_i)$ the second element.
+
+
+### Loss function {-}
+
+The negative log likelihood was used as the loss function, enumerating over a large range of potential values of the true abundance (from $\min(y_j.)$ to $5 \times \max(y_j.)$, where $y_{j.}$ is a vector of counts of length $K$) to approximate the underlying infinite mixture model implied by the Poisson model of abundance [@royle2004n]. 
+It is also worth noting that alternative specifications based on a multivariate Poisson model are possible [@dennis2015computational].
+
+
+
+## A neural hidden Markov model: capture-recapture-recovery {-}
+
+Consider a capture-recapture-recovery study aimed at estimating time-varying parameters [@king2012review]. 
+Assume that individuals $i=1, ..., N$ are initially captured, marked, and released on timestep $t=0$. 
+
+The state of an individual $i$ on time step $t$ is denoted $z_{i, t}$. 
+Individuals are either alive ($z_{i, t} = 0$), recently dead such that their bodies are discoverable (and marks identifiable) ($z_{i, t} = 1$), or long dead such that their bodies are not discoverable and/or marks are no longer identifiable ($z_{i, t} = 2$). 
+
+### Observation model {-}
+
+Observations $y_{i, t}$ are made on time steps $t=1, ..., T$, and if an individual is detected alive on timestep $t$, $y_{i, t} = 1$, and if an individual is detected as recently dead $y_{i, t}=2$, otherwise if the individual is not detected $y_{i, t} = 0$. 
+
+Let $\vec{\Omega}_t$ denote a time-varying emission matrix containing state-dependent observation probabilities:
+
+$$
+\vec{\Omega}_t =
+\begin{bmatrix}
+    1-p_t         & p_t & 0         \\
+    1 - \lambda_t & 0   & \lambda_t \\
+    1             &  0  & 0
+\end{bmatrix},
+$$
+
+where $p_t$ is the probability of detecting an individual on timestep $t$, conditional on the individual being alive, and $\lambda_t$ is the probability of recovering a recently dead individual on timestep $t$ that has died since timestep $t-1$. 
+The rows of the emission matrix correspond to states (alive, recently dead, long dead), and the columns correspond to observations (not detected, detected alive, detected dead).
+
+### Process model {-}
+
+At time $t$, the transition probability matrix $\vec{\Gamma}_t$ contains the probability of transitioning from row $j$ to column $k$:
+
+$$\vec{\Gamma}_t = 
+\begin{bmatrix}
+    \phi_t  & 1 - \phi_t & 0 \\
+    0       & 0          & 1 \\
+    0       & 0          & 1
+\end{bmatrix},
+$$
+
+where survival probability is $\phi_t = P(z_{i, t + 1} = 0 \mid z_{i, t} = 0)$, dead individuals stay dead, and the rows and columns of the transition matrix correspond to states (alive, recently dead, long dead). 
+
+### Parameter Model {-}
+
+Heterogeneity among timesteps was accounted for using three two-layer neural networks (one for $\phi$, one for $\lambda$, and one for $p$). 
+Each network ingests a univariate time series and outputs a corresponding time series of parameter values (i.e., each network maps a sequence of inputs $x = (x_{t = 1}, ..., x_{t=T})'$ to a sequence of parameter values, e.g., $p= (p_{t=1}, ..., p_{t=T})'$ for the detection probability network: 
+
+$$\vec{\phi} = \text{logit}^{-1}f^{(\phi)}(\vec{x}),$$
+$$\vec{\lambda} = \text{logit}^{-1}f^{(\lambda)}(\vec{x}),$$
+$$\vec{p} = \text{logit}^{-1}f^{(p)}(\vec{x}),$$
+
+where $f^{(j)}$ is a neural network for parameter $j$.
+
+
+
+### Loss function {-}
+
+The negative log observed data likelihood was used as the loss function, and computed using the forward algorithm [@zucchini2017hidden]. 
+Observation histories for individuals were assumed to be conditionally independent. 
+As an aside, one can specify such models in terms of the complete data likelihood (i.e., in terms of the hidden states) using programming frameworks that implement automatic enumeration of discrete latent variables with finite support, such as Pyro [@bingham2018pyro].
+
+`r if (!params$preprint) "## Literature cited {-}"`
+`r if (!params$preprint) "<div id='refs'></div>"`
+
+
+
+\clearpage
+
+

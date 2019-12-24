@@ -195,6 +195,8 @@ p %>%
     ggsave(filename = 'fig/occupancy_scatter.jpg', plot = ., 
            width = pwidth, height = pheight,
            dpi = r_dpi);
+    ggsave(filename = 'fig/occupancy_scatter.pdf', plot = ., 
+           width = pwidth, height = pheight);
   }
 
 
@@ -283,5 +285,7 @@ route_tsne_plot  %>%
     ggsave(filename = 'fig/route_tsne.jpg', plot = ., 
            width = tsne_w, height = tsne_h,
            dpi = r_dpi);
+    ggsave(filename = 'fig/route_tsne.pdf', plot = ., 
+           width = tsne_w, height = tsne_h);
   }
 

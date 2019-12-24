@@ -1,5 +1,5 @@
-library(vroom)
 library(tidyverse)
+library(vroom)
 library(patchwork)
 library(sf)
 library(rmapshaper)
@@ -68,8 +68,8 @@ wtc <- function(g, w){
 }
 
 centroid_pts <- z_mles %>%
-  filter(z_mle == 1) %>%
-  filter(sp.bbs %in% common_sp_present_all_years$sp.bbs, 
+  filter(z_mle == 1, 
+         sp.bbs %in% common_sp_present_all_years$sp.bbs, 
          route_id %in% routes_surveyed_most_years$route_id) %>%
   left_join(bbs_routes) %>%
   st_as_sf(coords = c("Longitude", "Latitude"), 
@@ -353,7 +353,8 @@ p2 <- dist_decay_df %>%
         plot.margin = unit(c(0, 5, 0, 5), "pt"))
 p2
 
-p3 <- z_mles %>%
+
+persist_colon_df <- z_mles %>%
   filter(z_mle == 1, year != max(year)) %>%
   left_join(bbs_species) %>%
   filter(english %in% to_label$english) %>%
@@ -371,37 +372,43 @@ p3 <- z_mles %>%
   group_by(english, var) %>%
   mutate(adj_value = c(scale(qlogis(value))), 
          Label = ifelse(var == 'phi', "Persistence", "Colonization")) %>%
+  ungroup
+
+
+p3 <- persist_colon_df %>%
   ggplot() +
   geom_sf(data = ecoregions, 
           fill = 'white',  
           size =.1, alpha = .9) +
-  geom_sf(data = routes_sf %>%
-            filter(route_id %in% routes_surveyed_most_years$route_id), 
-          alpha = .1, size = .1) +
-  geom_sf(aes(color = adj_value), size = .2) +
-  geom_sf(data = centroid_pts %>%
-                  left_join(bbs_species) %>%
-                  filter(english %in% to_label$english) %>%
-                  mutate(english = factor(english, levels = levels(dec_df$english))) %>%
-                  group_by(english) %>%
-                  summarize() %>%
-                  st_cast("LINESTRING"), 
-          size = .5) +
   scale_color_viridis_c() +
+  geom_sf(data = routes_sf %>%
+            filter(route_id %in% routes_surveyed_most_years$route_id),
+          alpha = .1, size = .1, color = "black") +
+  geom_sf(aes(color = adj_value), size = .2) + 
+  geom_sf(data = centroid_pts %>%
+            left_join(bbs_species) %>%
+            filter(english %in% to_label$english) %>%
+            mutate(english = factor(english, levels = levels(dec_df$english))) %>%
+            group_by(english) %>%
+            summarize() %>%
+            st_cast("LINESTRING"), 
+          size = .5, color = "black") +
+  facet_grid(rows = vars(Label), cols = vars(english)) + 
   theme_minimal() + 
-  theme(legend.position = 'none') +
-  facet_grid(Label~english) + 
-  theme(axis.text = element_blank(),
+  theme(legend.position = 'none', 
+        axis.text = element_blank(),
         plot.margin = unit(c(0, 5, 0, 5), "pt"))
 p3
 
 
 persist_dist_plot <- ((p0 + ggtitle("(a)")) | (dist_cor_plot + ggtitle("(b)"))) / (p3 + ggtitle("(c)")) / (p2 + ggtitle("(d)")) + plot_layout(heights = c(1, 2, 1.2))
-persist_dist_plot
+#persist_dist_plot
 
 persist_dist_plot %>%
   {
-    ggsave(filename = 'fig/persist-dist-plot.jpg', plot = ., 
+    ggsave(filename = 'fig/persist-dist-plot.pdf', plot = ., 
+           width = 6, height = 9)
+    ggsave(filename = 'fig/persist-dist-plot.jpg', plot = .,
            width = 6, height = 9, dpi = dpi)
   }
 

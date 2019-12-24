@@ -161,7 +161,11 @@ auc_map
 
 p <- (roc_plot | auc_plot) / auc_map + plot_layout(heights = c(.5, 1))
 
-ggsave(filename = 'fig/roc-test.jpg', plot = p, width = 5, height = 5)
+p %>%
+  {
+    ggsave(filename = 'fig/roc-test.jpg', plot = ., width = 5, height = 5)
+    ggsave(filename = 'fig/roc-test.pdf', plot = ., width = 5, height = 5)
+  }
 
 
 write_csv(auc_df, 'out/auc_df.csv')

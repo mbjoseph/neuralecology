@@ -29,12 +29,17 @@ agg_data = data/bbs_aggregated/bird.csv \
 	
 model_comps = out/nll-comps.csv out/train-valid-nll.csv
 
-paper/neural_ecology.pdf: $(figs) paper/neural_ecology.Rmd paper/library.bib \
+paper/neural_ecology.pdf paper/appendix_s1.pdf paper/appendix_s2.pdf paper/appendix_s3.pdf: $(figs) \
+	paper/neural_ecology.Rmd paper/library.bib \
+	paper/appendix_s1.Rmd paper/appendix_s2.Rmd paper/appendix_s3.Rmd \
 	paper/title.sty paper/doc-prefix.tex paper/ecology-letters.csl \
 	data/cleaned/bbs-summary.csv data/cleaned/clean_routes.csv \
 	out/nll-comps.csv out/coverage_df.csv out/auc_df.csv out/dec_df.csv \
 	out/cosine_sim.csv data/cleaned/bbs_species.csv out/select_paths.csv
 		Rscript -e "rmarkdown::render('paper/neural_ecology.Rmd')"
+		Rscript -e "rmarkdown::render('paper/appendix_s1.Rmd')"
+		Rscript -e "rmarkdown::render('paper/appendix_s2.Rmd')"
+		Rscript -e "rmarkdown::render('paper/appendix_s3.Rmd')"
 	# replace paths in tex output (sed magic)
 	sed "s?`pwd`/fig/??" paper/neural_ecology.tex > paper/neural_ecology_submit.tex
 
