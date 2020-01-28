@@ -2,7 +2,8 @@
 
 [![DOI](https://zenodo.org/badge/206636551.svg)](https://zenodo.org/badge/latestdoi/206636551)
 
-Preprint: https://www.biorxiv.org/content/10.1101/759944v1?rss=1
+Paper: https://onlinelibrary.wiley.com/doi/full/10.1111/ele.13462  
+Preprint: https://www.biorxiv.org/content/10.1101/759944v3
 
 ### Key idea
 
