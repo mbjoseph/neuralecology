@@ -17,6 +17,10 @@ Analogously, an ecological model (c) maps an input x to parameters of a hierarch
 A neural version of model (d) would similarly involve hidden layers between x and these parameters. 
 Deep models (e) can also be constructed that use more complex neural architectures, especially when data are structured in time, space, and/or over networks. 
 
+A variety of neural network components can be readily used in neural hierarchical models. 
+For example, you might parameterize a hidden Markov model of animal movement using a convolutional neural network that takes remotely sensed imagery as input (see Appendix S2 for details). 
+
+![convHMM](fig/conv_hmm_edited.png)
 
 ## Hardware requirements
 
