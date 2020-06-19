@@ -77,6 +77,7 @@ centroid_pts <- z_mles %>%
   st_transform(epsg) %>%
   group_by(year, sp.bbs) %>%
   summarize %>%
+  ungroup %>%
   st_centroid
 
 
@@ -342,7 +343,7 @@ p2 <- dist_decay_df %>%
   mutate(english = factor(english, levels = levels(dec_df$english))) %>%
   gather(var, value, -route_id, -english, -km_from_centroid, -ends_with('cor')) %>%
   mutate(Label = ifelse(var == "phi", "Persistence", "Colonization")) %>%
-  ggplot(aes(km_from_centroid, value)) + 
+  ggplot(aes(as.numeric(km_from_centroid), value)) + 
   geom_point(alpha = pt_alpha, size = pt_size) + 
   facet_grid(Label~reorder(english, -phid_cor), scales = 'free') + 
   xlab(expression(paste("Kilometers from range centroid (", d["c"], ")"))) + 
@@ -399,6 +400,14 @@ p3 <- persist_colon_df %>%
         axis.text = element_blank(),
         plot.margin = unit(c(0, 5, 0, 5), "pt"))
 p3
+
+ggsave("fig/colonization-persistence-map.pdf", 
+       plot = p3 + 
+         coord_sf(crs = st_crs(centroid_pts), 
+                  datum = NA) + 
+         theme(panel.grid = element_blank()), 
+       width = 6, height = 3)
+
 
 
 persist_dist_plot <- ((p0 + ggtitle("(a)")) | (dist_cor_plot + ggtitle("(b)"))) / (p3 + ggtitle("(c)")) / (p2 + ggtitle("(d)")) + plot_layout(heights = c(1, 2, 1.2))

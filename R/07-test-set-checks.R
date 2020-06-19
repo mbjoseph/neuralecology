@@ -140,9 +140,8 @@ routes <- st_read('data/cleaned/routes.shp') %>%
   st_transform(3174)
 
 ecoregions <- st_read('data/NA_CEC_Eco_Level3.shp') %>%
-  st_transform(3174) %>%
-  ms_simplify %>%
-  st_crop(routes)
+  st_transform(st_crs(routes)) %>%
+  ms_simplify
 
 l2_regions <- ecoregions %>%
   group_by(NA_L2KEY) %>%
@@ -158,6 +157,8 @@ auc_map <- routes %>%
   scale_color_gradient(low = 'red', high = 'dodgerblue', 'AUC') + 
   ggtitle('(c)')
 auc_map
+
+ggsave("fig/auc_map.pdf", plot = auc_map + ggtitle(""), width = 5, height = 4)
 
 p <- (roc_plot | auc_plot) / auc_map + plot_layout(heights = c(.5, 1))
 

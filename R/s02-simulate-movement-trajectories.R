@@ -444,8 +444,8 @@ stopifnot(all(get_num_traj() == 1024))
 
 # Generate an example plot for a movement trajectory ----------------------
 
-plot_traj <- function() {
-  trajdir <- sample(trajectories[[1]], size = 1)
+plot_traj <- function(idx) {
+  trajdir <- trajectories[[1]][idx]
   
   sim_df <- file.path(trajdir, "coords.gpkg") %>%
     st_read
@@ -453,7 +453,8 @@ plot_traj <- function() {
   p1 <- sim_df %>%
     ggplot(aes(x, y)) + 
     geom_raster(data = chm %>%
-                  crop(sim_df) %>%
+                  crop(sim_df %>%
+                         st_buffer(5)) %>%
                   as.data.frame(xy = TRUE) %>%
                   as_tibble, 
                 aes(fill = chm_mosaic), 
@@ -472,15 +473,18 @@ plot_traj <- function() {
     ggtitle("(a)")
   p1
   
+  cl <- parallel::makeCluster(parallel::detectCores()/2)
   rgb_crop <- stack(file.path(trajdir, "rgb_crop.tif"))
+  parallel::clusterExport(cl, "rgb_crop", envir = environment())
   chips <- file.path(trajdir, "chip_bboxes.gpkg") %>%
     st_read %>%
     mutate(id = 1:n()) %>%
     split(.$id) %>%
     pblapply(function(x) {
-      rgb_crop %>%
-        crop(x) 
-    })
+      raster::crop(rgb_crop, x) 
+    }, 
+    cl = cl)
+  parallel::stopCluster(cl)
   
   chip_mosaic <- chips
   names(chip_mosaic)[1:2] <- c("x", "y")
@@ -489,12 +493,12 @@ plot_traj <- function() {
   final_chip_mosaic <- do.call(mosaic, chip_mosaic)
   
   p2 <- ggplot() + 
-    ggspatial::layer_spatial(data = rgb_crop, alpha = .3) + 
+    ggspatial::layer_spatial(data = rgb_crop, alpha = .5) + 
     ggspatial::layer_spatial(data = final_chip_mosaic) + 
     theme_minimal() + 
-    # geom_sf(data = summarize(sim_df, do_union=FALSE) %>%
-    #           st_cast('LINESTRING'), size = .1, color = "white") + 
-    # geom_sf(data = sim_df, color = "white", size = .1, alpha = .1) +
+    geom_sf(data = summarize(sim_df, do_union=FALSE) %>%
+              st_cast('LINESTRING'), size = .2, color = "white") +
+    geom_sf(data = sim_df, color = "white", size = .4) +
     theme(axis.text = element_blank(), 
           panel.grid = element_blank(), 
           legend.position = 'none') + 
@@ -504,8 +508,10 @@ plot_traj <- function() {
   p1 + p2
 }
 
-trajplot <- plot_traj()
-ggsave("fig/example-trajectory.png", plot = trajplot, width = 6, height = 4)
+
+trajplot <- plot_traj(23)
+trajplot
+ggsave("fig/example-trajectory.png", plot = trajplot, width = 8, height = 5)
 
 
 

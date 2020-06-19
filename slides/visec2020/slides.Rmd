@@ -1,0 +1,375 @@
+---
+title: "Neural hierarchical models"
+author: "Maxwell B. Joseph"
+date: "vISEC2020"
+output: 
+  beamer_presentation:
+    includes: 
+      in_header: "preamble.tex"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## What I mean by hierarchical model\footnote[frame]{\tiny{Berliner LM. Hierarchical Bayesian time series models. Maximum entropy and Bayesian methods 1996: 15-22}}
+
+\def\layersep{2cm}
+
+
+\begin{center}
+\begin{tikzpicture}
+\node (observations) [whitebox] {Observations};
+\node (parameters) [par, below of=observations, right of=observations, xshift=3cm]{Parameters};
+\node (states) [par, below of=observations, yshift = -1cm] {States};
+\draw [arrow] (states) -- (observations);
+\draw [arrow] (parameters) -- (observations);
+\draw [arrow] (parameters) -- (states);
+\end{tikzpicture}
+\end{center}
+
+Joint distribution:
+
+$$\begin{aligned} 
+ \left[ \text{Observations} \mid \text{States}, \text{Parameters} \right] \\
+ \times [\text{States} \mid \text{Parameters}] \\
+ \times [\text{Parameters}]
+\end{aligned}$$
+
+## Occupancy models are hierarchical models
+
+\begin{center}
+\begin{tikzpicture}
+\node (data) [whitebox] {Detections $y$};
+\node (p) [par, right of=data, xshift=3cm]{$p$};
+\node (process) [par, below of=data, yshift = -1cm] {Occupancy $z$};
+\node (psi) [par, right of=process, xshift=3cm]{$\psi$};
+\draw [arrow] (p) -- (data);
+\draw [arrow] (process) -- (data);
+\draw [arrow] (psi) -- (process);
+\end{tikzpicture}
+\end{center}
+
+$$y \sim \text{Bernoulli}(z \times p)$$
+
+$$z \sim \text{Bernoulli}(\psi)$$
+
+## Parameters can depend on covariates
+
+e.g, a function $f$ maps covariates $X$ to occupancy probability $\psi$:
+
+$$\psi = f(X; \theta).$$
+
+## Often we assume linear relationships
+
+e.g., linear on the logit scale:
+
+$$\psi = \text{logit}^{-1}(X \beta).$$
+$\quad$
+
+\begin{center}
+\begin{tikzpicture}
+  % linear mapping
+  \tikzstyle{every pin edge}=[<-,shorten <=1pt]
+  \tikzstyle{input neuron}=[neuron, draw=black, fill=white];
+  \tikzstyle{output neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
+  \tikzstyle{annot} = [text width=4em, text centered]
+  
+  % Draw the input layer nodes
+  \foreach \name / \y in {1,...,4}
+  % This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+      \node[input neuron] (I-\name) at (0,-\y) {$x_{\y}$};
+  
+  % Draw the output layer node
+  \node[output neuron, right of=I-2, above of=I-3, xshift=1cm, yshift=-0.45cm] (O) {$\psi$};
+  
+  % Connect every node in the hidden layer with the output layer
+  \foreach \source in {1,...,4}
+      \draw (I-\source) edge (O);
+
+\end{tikzpicture}
+\end{center}
+
+
+## We may want to accommodate nonlinearity
+
+- Polynomials
+- Splines
+- Gaussian processes
+- **Neural networks?**
+
+
+## Neural networks approximate functions
+
+\begin{center}
+\begin{tikzpicture}
+\tikzstyle{every pin edge}=[<-,shorten <=1pt]
+\tikzstyle{input neuron}=[neuron, draw=black, fill=white];
+\tikzstyle{output neuron}=[neuron, draw=black, fill=white];
+\tikzstyle{hidden neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
+\tikzstyle{annot} = [text width=4em, text centered]
+
+% Draw the input layer nodes
+\foreach \name / \y in {1,...,4}
+% This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+    \node[input neuron] (I-\name) at (0,-\y) {$x_{\y}$};
+
+% Draw the hidden layer nodes
+\foreach \name / \y in {1,...,5}
+    \path[yshift=0.5cm]
+        node[hidden neuron] (H-\name) at (\layersep,-\y cm) {$h_{\y}$};
+
+% Draw the output layer node
+\node[output neuron, right of=H-3, xshift=1cm] (O) {$y$};
+
+% Connect every node in the input layer with every node in the
+% hidden layer.
+\foreach \source in {1,...,4}
+    \foreach \dest in {1,...,5}
+        \path (I-\source) edge (H-\dest);
+
+% Connect every node in the hidden layer with the output layer
+\foreach \source in {1,...,5}
+    \path (H-\source) edge (O);
+    
+\end{tikzpicture}
+\end{center}
+
+## We can parameterize hierarchical models with neural networks
+
+### Neural hierarchical models
+
+e.g., modeling parameters as neural network output
+
+\begin{center}
+\begin{tikzpicture}
+\tikzstyle{every pin edge}=[<-,shorten <=1pt]
+\tikzstyle{input neuron}=[neuron, draw=black, fill=white];
+\tikzstyle{output neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
+\tikzstyle{hidden neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
+\tikzstyle{annot} = [text width=4em, text centered]
+
+% Draw the input layer nodes
+\foreach \name / \y in {1,...,4}
+% This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+    \node[input neuron] (I-\name) at (0,-\y) {$x_{\y}$};
+
+% Draw the hidden layer nodes
+\foreach \name / \y in {1,...,5}
+    \path[yshift=0.5cm]
+        node[hidden neuron] (H-\name) at (\layersep,-\y cm) {$h_{\y}$};
+
+% Draw the output layer node
+\node[output neuron, right of=H-3, xshift=1cm] (O) {$\psi$};
+
+% Connect every node in the input layer with every node in the
+% hidden layer.
+\foreach \source in {1,...,4}
+    \foreach \dest in {1,...,5}
+        \path (I-\source) edge (H-\dest);
+
+% Connect every node in the hidden layer with the output layer
+\foreach \source in {1,...,5}
+    \path (H-\source) edge (O);
+
+\end{tikzpicture}
+\end{center}
+
+## A neural occupancy model
+
+\begin{center}
+\begin{tikzpicture}
+\tikzstyle{every pin edge}=[<-,shorten <=1pt]
+\tikzstyle{input neuron}=[neuron, draw=black, fill=white];
+\tikzstyle{output neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
+\tikzstyle{hidden neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
+\tikzstyle{annot} = [text width=4em, text centered]
+
+% Draw the input layer nodes
+\foreach \name / \y in {1,...,4}
+% This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+    \node[input neuron] (I-\name) at (0,-\y) {$x_{\y}$};
+
+% Draw the hidden layer nodes
+\foreach \name / \y in {1,...,5}
+    \path[yshift=0.5cm]
+        node[hidden neuron] (H-\name) at (\layersep,-\y cm) {$h_{\y}$};
+
+% Draw the output layer node
+\node[output neuron, right of=H-3, xshift=1cm] (O) {$\psi$};
+
+% Draw other hierarchical model components
+\node[output neuron, above of=O] (p) {$p$};
+\node[hidden neuron,label=below:\tiny Occupancy state, right of=O] (z) {$z$};
+\node[input neuron,label=above:\tiny Detection data, above of=z, right of=z] (y) {$y$};
+
+\path (O) edge (z);
+\path (z) edge (y);
+\path (p) edge (y);
+
+
+% Connect every node in the input layer with every node in the
+% hidden layer.
+\foreach \source in {1,...,4}
+    \foreach \dest in {1,...,5}
+        \path (I-\source) edge (H-\dest);
+
+% Connect every node in the hidden layer with the output layer
+\foreach \source in {1,...,5}
+    \path (H-\source) edge (O);
+
+\end{tikzpicture}
+\end{center}
+
+
+## Training neural hierarchical models
+
+Gradient-based optimization of the integrated log-likelihood
+
+e.g., if we observe $y_i$ for $i=1,...,N$:
+
+$$\text{Loss}(\theta) = - \frac{1}{N} \sum_{i=1}^N \ell(y_i, \theta).$$
+
+- permits stochastic (minibatch) optimization
+- $L_2$ penalty on $\theta \equiv$ *maximum a posteriori* estimation
+
+## Ex. 1: neural dynamic occupancy model
+
+North American Breeding Bird Survey:
+
+- 647 species 
+- 21 years
+- 4,540 survey routes (with 50 stops each)
+- 38 million observations
+- Train/valid/test split
+
+## Predictive performance
+
+```{r auc_map, fig.width=6, out.width=300}
+knitr::include_graphics("figs/auc_map.pdf")
+```
+
+## Nonlinear dependence among species
+
+
+
+```{r occscatt, fig.width=6, out.width=300}
+knitr::include_graphics("../../fig/occupancy_scatter.jpg")
+```
+
+
+
+## Interpretability arises from process parameters
+
+![](figs/colonization-persistence-map.pdf)
+
+## Ex. 2: convolutional animal movement model
+
+![](figs/example-trajectory.pdf)
+
+## Parameterizing a hidden Markov model with a convolutional neural network
+
+![](figs/conv_hmm_edited.pdf)
+
+## Performance is better with more data
+
+![](figs/convhmm-perf.pdf)
+
+## The model learns from aerial imagery and movement trajectories
+
+![](../../fig/top-prob-chips.png)
+
+## Neural hierarchical models augment existing models
+
+e.g., if you know $f$: 
+
+$$\text{logit}(\psi) = \underbrace{f(x)}_{\text{Known}} + \underbrace{\text{NN}_\theta(x)}_{\text{Unknown}}$$
+
+
+## Science-based deep learning is happening
+
+### Universal differential equations\footnote[frame]{\tiny{Rackauckas, Christopher, et al. "Universal Differential Equations for Scientific Machine Learning." arXiv preprint arXiv:2001.04385 (2020).}}
+
+$$u' = \text{NN}_\theta(u, t)$$
+where $u$ is a state, and $\text{NN}_\theta$ is a neural net.
+
+
+## Science-based deep learning is multifaceted
+
+### Physics-guided neural networks\footnote[frame]{\tiny{Karpatne, Anuj, et al. "Physics-guided neural networks (pgnn): An application in lake temperature modeling." arXiv preprint arXiv:1710.11431 (2017).}}
+
+$$\text{Loss} = \text{Error} + \text{Model complexity} + \text{Physical inconsistency}$$
+
+
+## Try it at **github.com/mbjoseph/neuralecology**
+
+[![Binder](figs/badge_logo.pdf)](https://mybinder.org/v2/gh/mbjoseph/neuralecology/master)
+
+- Site-occupancy model 
+- Dynamic occupancy model
+- N-mixture model
+- Capture-recapture model
+
+
+## Thank you
+
+
+\small
+**Funding:** University of Colorado Grand Challenge, Earth Lab
+
+**Data:** North American Breeding Bird Survey & its participants. National Ecological Observation Network.
+
+**Feedback/ideas:** Two anonymous reviewers, Justin Kitzes, Carl Boettiger, David Zonana, Roland Knapp, ESIP/NASA AIST programs
+
+\normalsize
+
+### Code
+
+https://github.com/mbjoseph/neuralecology
+
+### Paper
+
+Joseph MB. 2020. Neural hierarchical models of ecological populations. Ecology Letters, 23(4).
+
+## Bonus footage
+
+
+
+## 
+
+![](../../fig/centroid-displacement.pdf)
+
+
+## 
+
+![](../../fig/persist-dist-plot.pdf)
+
+
+## 
+
+![](../../fig/roc-test.jpg)
+
+
+## 
+
+![](../../fig/route_tsne.jpg)
+
+## 
+
+![](../../fig/figs2.pdf)
+
+
+## 
+
+![](../../fig/movement-distributions.pdf)
+
+
+## 
+
+![](../../fig/traj-plot.png)
+
+
+## 
+
+![](../../fig/transition-densities.png)
