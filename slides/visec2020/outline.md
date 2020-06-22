@@ -15,3 +15,22 @@
 3. Let's think more broadly about how we use deep learning
 - e.g., how can we couple the output of computer vision models with ecological models?
 - what are the new failure modes that we invite with deep learning?
+
+# Hook: 
+
+Deep learning revolution
+
+What has ecology done with the deep learning revolution
+- example applications
+
+These applications are unsatisfying. They don't tell me what I want to know.
+
+I don't just want to predict data. I want to learn about ecology!
+- population dynamics
+- occupancy states
+- historical change
+- demographic rates
+
+These are all things we study with hierarchical models
+
+

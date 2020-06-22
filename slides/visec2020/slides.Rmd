@@ -1,6 +1,8 @@
 ---
 title: "Neural hierarchical models"
-author: "Maxwell B. Joseph"
+author: |
+  | Maxwell B. Joseph
+  | @mxwlj
 date: "vISEC2020"
 output: 
   beamer_presentation:
@@ -13,38 +15,56 @@ output:
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-## What I mean by hierarchical model\footnote[frame]{\tiny{Berliner LM. Hierarchical Bayesian time series models. Maximum entropy and Bayesian methods 1996: 15-22}}
+
+## Suppose we mapped every tree with deep learning
+
+```{r earth, fig.width=6, out.width=200, fig.align='center'}
+knitr::include_graphics("figs/goes-earth.jpg")
+```
+
+\tiny GOES-East, 2014-04-22, NASA Goddard Space Flight Center
+
+
+## What would we have learned about plant ecology?
+
+```{r earth2, fig.width=6, out.width=200, fig.align='center'}
+knitr::include_graphics("figs/goes-earth.jpg")
+```
+
+\tiny GOES-East, 2014-04-22, NASA Goddard Space Flight Center
+
+
+
+##
+
+\huge The data revolution and deep learning are not sufficient for inference.
+
+
+## Science-based hierarchical models\footnote[frame]{\tiny{Berliner LM. Hierarchical Bayesian time series models. Maximum entropy and Bayesian methods 1996: 15-22}} permit inference
 
 \def\layersep{2cm}
 
 
 \begin{center}
 \begin{tikzpicture}
-\node (observations) [whitebox] {Observations};
-\node (parameters) [par, below of=observations, right of=observations, xshift=3cm]{Parameters};
-\node (states) [par, below of=observations, yshift = -1cm] {States};
+\node (states) [par] {States};
+\node (parameters) [par, left of=states, xshift=-2cm, yshift=2cm]{Parameters};
+\node (observations) [whitebox, right of=states, above of=states, xshift=2cm, yshift=1cm] {Observations};
 \draw [arrow] (states) -- (observations);
 \draw [arrow] (parameters) -- (observations);
 \draw [arrow] (parameters) -- (states);
 \end{tikzpicture}
 \end{center}
 
-Joint distribution:
 
-$$\begin{aligned} 
- \left[ \text{Observations} \mid \text{States}, \text{Parameters} \right] \\
- \times [\text{States} \mid \text{Parameters}] \\
- \times [\text{Parameters}]
-\end{aligned}$$
-
-## Occupancy models are hierarchical models
+## Occupancy models\footnote[frame]{\tiny{MacKenzie, Darryl I., et al. "Estimating site occupancy rates when detection probabilities are less than one." Ecology 83.8 (2002): 2248-2255.}} are hierarchical models
 
 \begin{center}
 \begin{tikzpicture}
-\node (data) [whitebox] {Detections $y$};
-\node (p) [par, right of=data, xshift=3cm]{$p$};
-\node (process) [par, below of=data, yshift = -1cm] {Occupancy $z$};
-\node (psi) [par, right of=process, xshift=3cm]{$\psi$};
+\node (process) [par] {Occupancy state $z$};
+\node (data) [whitebox, right of=process, above of=process, xshift=2cm, yshift=1cm] {Detection data $y$};
+\node (p) [par, left of=process, xshift=-2.5cm, yshift=2cm]{$p$};
+\node (psi) [par, left of=process, xshift=-2.5cm]{$\psi$};
 \draw [arrow] (p) -- (data);
 \draw [arrow] (process) -- (data);
 \draw [arrow] (psi) -- (process);
@@ -57,7 +77,7 @@ $$z \sim \text{Bernoulli}(\psi)$$
 
 ## Parameters can depend on covariates
 
-e.g, a function $f$ maps covariates $X$ to occupancy probability $\psi$:
+e.g, $f$ maps covariates $X$ to occupancy probability $\psi$:
 
 $$\psi = f(X; \theta).$$
 
@@ -99,7 +119,6 @@ $\quad$
 - Gaussian processes
 - **Neural networks?**
 
-
 ## Neural networks approximate functions
 
 \begin{center}
@@ -121,7 +140,7 @@ $\quad$
         node[hidden neuron] (H-\name) at (\layersep,-\y cm) {$h_{\y}$};
 
 % Draw the output layer node
-\node[output neuron, right of=H-3, xshift=1cm] (O) {$y$};
+\node[output neuron, right of=H-3, xshift=1cm] (O) {$\hat y$};
 
 % Connect every node in the input layer with every node in the
 % hidden layer.
@@ -140,7 +159,9 @@ $\quad$
 
 ### Neural hierarchical models
 
-e.g., modeling parameters as neural network output
+Neural network predicts parameters
+
+$\;$
 
 \begin{center}
 \begin{tikzpicture}
@@ -176,7 +197,13 @@ e.g., modeling parameters as neural network output
 \end{tikzpicture}
 \end{center}
 
-## A neural occupancy model
+## We can parameterize hierarchical models with neural networks
+
+### Neural hierarchical models
+
+Hierarchical model includes a neural network
+
+$\;$
 
 \begin{center}
 \begin{tikzpicture}
@@ -201,7 +228,7 @@ e.g., modeling parameters as neural network output
 
 % Draw other hierarchical model components
 \node[output neuron, above of=O] (p) {$p$};
-\node[hidden neuron,label=below:\tiny Occupancy state, right of=O] (z) {$z$};
+\node[hidden neuron,label=below:\tiny Occupancy, right of=O] (z) {$z$};
 \node[input neuron,label=above:\tiny Detection data, above of=z, right of=z] (y) {$y$};
 
 \path (O) edge (z);
@@ -223,16 +250,14 @@ e.g., modeling parameters as neural network output
 \end{center}
 
 
-## Training neural hierarchical models
+## Parameter estimation
 
-Gradient-based optimization of the integrated log-likelihood
+If we observe $y_i$ for $i=1,...,N$:
 
-e.g., if we observe $y_i$ for $i=1,...,N$:
+$$\text{Loss}(\theta) = - \frac{1}{N} \sum_{i=1}^N \underbrace{\ell(y_i, \theta)}_{\substack{\text{Log} \\ \text{probability}}}$$
 
-$$\text{Loss}(\theta) = - \frac{1}{N} \sum_{i=1}^N \ell(y_i, \theta).$$
+Permits stochastic minibatch optimization
 
-- permits stochastic (minibatch) optimization
-- $L_2$ penalty on $\theta \equiv$ *maximum a posteriori* estimation
 
 ## Ex. 1: neural dynamic occupancy model
 
@@ -240,15 +265,17 @@ North American Breeding Bird Survey:
 
 - 647 species 
 - 21 years
-- 4,540 survey routes (with 50 stops each)
+- 4,540 survey routes (50 stops each)
 - 38 million observations
-- Train/valid/test split
+- Train/valid/test split by ecoregion
 
-## Predictive performance
+
+## Predictive performance on the test set
 
 ```{r auc_map, fig.width=6, out.width=300}
 knitr::include_graphics("figs/auc_map.pdf")
 ```
+
 
 ## Nonlinear dependence among species
 
@@ -260,23 +287,27 @@ knitr::include_graphics("../../fig/occupancy_scatter.jpg")
 
 
 
-## Interpretability arises from process parameters
+## Ecological inference about range boundaries
 
 ![](figs/colonization-persistence-map.pdf)
+
+\tiny Holt RD, Keitt TH. Alternative causes for range limits: a metapopulation perspective. Ecology Letters. 2000 Jan;3(1):41-7.
 
 ## Ex. 2: convolutional animal movement model
 
 ![](figs/example-trajectory.pdf)
 
+
 ## Parameterizing a hidden Markov model with a convolutional neural network
 
 ![](figs/conv_hmm_edited.pdf)
+
 
 ## Performance is better with more data
 
 ![](figs/convhmm-perf.pdf)
 
-## The model learns from aerial imagery and movement trajectories
+## Test set predictions
 
 ![](../../fig/top-prob-chips.png)
 
@@ -302,7 +333,7 @@ where $u$ is a state, and $\text{NN}_\theta$ is a neural net.
 $$\text{Loss} = \text{Error} + \text{Model complexity} + \text{Physical inconsistency}$$
 
 
-## Try it at **github.com/mbjoseph/neuralecology**
+## Interactive neural hierarchical models at **github.com/mbjoseph/neuralecology**
 
 [![Binder](figs/badge_logo.pdf)](https://mybinder.org/v2/gh/mbjoseph/neuralecology/master)
 
@@ -316,11 +347,15 @@ $$\text{Loss} = \text{Error} + \text{Model complexity} + \text{Physical inconsis
 
 
 \small
+**Get in touch:** maxwell.b.joseph@colorado.edu, @mxwlj
+
 **Funding:** University of Colorado Grand Challenge, Earth Lab
 
-**Data:** North American Breeding Bird Survey & its participants. National Ecological Observation Network.
+**Data:** North American Breeding Bird Survey & its participants, National Ecological Observation Network
 
-**Feedback/ideas:** Two anonymous reviewers, Justin Kitzes, Carl Boettiger, David Zonana, Roland Knapp, ESIP/NASA AIST programs
+**Thanks:** Two anonymous reviewers, Justin Kitzes, Carl Boettiger, David Zonana, Roland Knapp, ESIP/NASA AIST programs
+
+
 
 \normalsize
 
@@ -332,8 +367,14 @@ https://github.com/mbjoseph/neuralecology
 
 Joseph MB. 2020. Neural hierarchical models of ecological populations. Ecology Letters, 23(4).
 
-## Bonus footage
+## Bonus slides
 
+
+## Bayesian interpretation
+
+Gaussian prior on weights $\rightarrow$ $L_2$ penalty
+
+$$\text{Loss}(\theta) = - \frac{1}{N} \sum_{i=1}^N \ell(y_i, \theta) + L_2(\theta).$$
 
 
 ## 
