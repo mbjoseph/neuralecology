@@ -1,5 +1,5 @@
 ---
-title: "Neural hierarchical models"
+title: "Neural hierarchical models in ecology"
 author: |
   | Maxwell B. Joseph
   | @mxwlj
@@ -16,31 +16,21 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 
-## Suppose we mapped every tree with deep learning
+## Suppose we mapped every tree
 
-```{r earth, fig.width=6, out.width=200, fig.align='center'}
+```{r earth, fig.width=6, out.width=200}
 knitr::include_graphics("figs/goes-earth.jpg")
 ```
 
 \tiny GOES-East, 2014-04-22, NASA Goddard Space Flight Center
-
-
-## What would we have learned about plant ecology?
-
-```{r earth2, fig.width=6, out.width=200, fig.align='center'}
-knitr::include_graphics("figs/goes-earth.jpg")
-```
-
-\tiny GOES-East, 2014-04-22, NASA Goddard Space Flight Center
-
 
 
 ##
 
-\huge The data revolution and deep learning are not sufficient for inference.
+\textbf{\Huge The data revolution and deep learning aren't sufficient for scientific inference.}
 
 
-## Science-based hierarchical models\footnote[frame]{\tiny{Berliner LM. Hierarchical Bayesian time series models. Maximum entropy and Bayesian methods 1996: 15-22}} permit inference
+## Science-based hierarchical models\footnote[frame]{\tiny{Berliner LM. Hierarchical Bayesian time series models. Maximum entropy and Bayesian methods 1996: 15-22}}
 
 \def\layersep{2cm}
 
@@ -57,7 +47,7 @@ knitr::include_graphics("figs/goes-earth.jpg")
 \end{center}
 
 
-## Occupancy models\footnote[frame]{\tiny{MacKenzie, Darryl I., et al. "Estimating site occupancy rates when detection probabilities are less than one." Ecology 83.8 (2002): 2248-2255.}} are hierarchical models
+## Occupancy models are hierarchical\footnote[frame]{\tiny{MacKenzie, Darryl I., et al. "Estimating site occupancy rates when detection probabilities are less than one." Ecology 83.8 (2002): 2248-2255.}} 
 
 \begin{center}
 \begin{tikzpicture}
@@ -112,10 +102,11 @@ $\quad$
 \end{center}
 
 
-## We may want to accommodate nonlinearity
+## We can accommodate nonlinearity
 
 - Polynomials
 - Splines
+- Random fields
 - Gaussian processes
 - **Neural networks?**
 
@@ -126,7 +117,7 @@ $\quad$
 \tikzstyle{every pin edge}=[<-,shorten <=1pt]
 \tikzstyle{input neuron}=[neuron, draw=black, fill=white];
 \tikzstyle{output neuron}=[neuron, draw=black, fill=white];
-\tikzstyle{hidden neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
+\tikzstyle{hidden neuron}=[neuron, draw=black, fill=UniBlue!50!white];
 \tikzstyle{annot} = [text width=4em, text centered]
 
 % Draw the input layer nodes
@@ -155,9 +146,8 @@ $\quad$
 \end{tikzpicture}
 \end{center}
 
-## We can parameterize hierarchical models with neural networks
 
-### Neural hierarchical models
+## Neural hierarchical models\footnote[frame]{\tiny{Joseph MB. 2020. Neural hierarchical models of ecological populations. Ecology Letters, 23(4).}} 
 
 Neural network predicts parameters
 
@@ -168,7 +158,7 @@ $\;$
 \tikzstyle{every pin edge}=[<-,shorten <=1pt]
 \tikzstyle{input neuron}=[neuron, draw=black, fill=white];
 \tikzstyle{output neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
-\tikzstyle{hidden neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
+\tikzstyle{hidden neuron}=[neuron, draw=black, fill=UniBlue!50!white];
 \tikzstyle{annot} = [text width=4em, text centered]
 
 % Draw the input layer nodes
@@ -197,9 +187,7 @@ $\;$
 \end{tikzpicture}
 \end{center}
 
-## We can parameterize hierarchical models with neural networks
-
-### Neural hierarchical models
+## Neural hierarchical models\footnote[frame]{\tiny{Joseph MB. 2020. Neural hierarchical models of ecological populations. Ecology Letters, 23(4).}}
 
 Hierarchical model includes a neural network
 
@@ -210,7 +198,7 @@ $\;$
 \tikzstyle{every pin edge}=[<-,shorten <=1pt]
 \tikzstyle{input neuron}=[neuron, draw=black, fill=white];
 \tikzstyle{output neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
-\tikzstyle{hidden neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
+\tikzstyle{hidden neuron}=[neuron, draw=black, fill=UniBlue!50!white];
 \tikzstyle{annot} = [text width=4em, text centered]
 
 % Draw the input layer nodes
@@ -228,7 +216,7 @@ $\;$
 
 % Draw other hierarchical model components
 \node[output neuron, above of=O] (p) {$p$};
-\node[hidden neuron,label=below:\tiny Occupancy, right of=O] (z) {$z$};
+\node[output neuron,label=below:\tiny Occupancy, right of=O] (z) {$z$};
 \node[input neuron,label=above:\tiny Detection data, above of=z, right of=z] (y) {$y$};
 
 \path (O) edge (z);
@@ -256,10 +244,9 @@ If we observe $y_i$ for $i=1,...,N$:
 
 $$\text{Loss}(\theta) = - \frac{1}{N} \sum_{i=1}^N \underbrace{\ell(y_i, \theta)}_{\substack{\text{Log} \\ \text{probability}}}$$
 
-Permits stochastic minibatch optimization
+- Stochastic minibatch optimization
 
-
-## Ex. 1: neural dynamic occupancy model
+## Ex. 1: a neural joint species  \newline dynamic occupancy model
 
 North American Breeding Bird Survey:
 
@@ -267,7 +254,21 @@ North American Breeding Bird Survey:
 - 21 years
 - 4,540 survey routes (50 stops each)
 - 38 million observations
-- Train/valid/test split by ecoregion
+
+## Dynamic occupancy models\footnote[frame]{\tiny{Royle JA, Kéry M. A Bayesian state‐space formulation of dynamic occupancy models. Ecology. 2007 Jul;88(7):1813-23.}}
+
+![](figs/dynamic-occ.pdf)
+
+
+## Neural joint species dynamic occupancy model
+
+![](figs/figs2-wide.pdf)
+
+\tiny Species encoder extends Chen, Di, et al. "Deep multi-species embedding." arXiv preprint arXiv:1609.09353 (2016) to share information among related species.
+
+## Some familiar faces
+
+![](figs/model-equations.pdf)
 
 
 ## Predictive performance on the test set
@@ -279,17 +280,14 @@ knitr::include_graphics("figs/auc_map.pdf")
 
 ## Nonlinear dependence among species
 
-
-
 ```{r occscatt, fig.width=6, out.width=300}
-knitr::include_graphics("../../fig/occupancy_scatter.jpg")
+knitr::include_graphics("figs/ex-assoc.pdf")
 ```
 
 
+## Ecological inference
 
-## Ecological inference about range boundaries
-
-![](figs/colonization-persistence-map.pdf)
+![](figs/ex-gradient.pdf)
 
 \tiny Holt RD, Keitt TH. Alternative causes for range limits: a metapopulation perspective. Ecology Letters. 2000 Jan;3(1):41-7.
 
@@ -298,7 +296,7 @@ knitr::include_graphics("../../fig/occupancy_scatter.jpg")
 ![](figs/example-trajectory.pdf)
 
 
-## Parameterizing a hidden Markov model with a convolutional neural network
+## Parameterizing a hidden Markov model \newline with a convolutional neural network
 
 ![](figs/conv_hmm_edited.pdf)
 
@@ -311,14 +309,22 @@ knitr::include_graphics("../../fig/occupancy_scatter.jpg")
 
 ![](../../fig/top-prob-chips.png)
 
-## Neural hierarchical models augment existing models
+## Neural hierarchical models \newline augment existing models
 
 e.g., if you know $f$: 
 
 $$\text{logit}(\psi) = \underbrace{f(x)}_{\text{Known}} + \underbrace{\text{NN}_\theta(x)}_{\text{Unknown}}$$
 
 
-## Science-based deep learning is happening
+## Statistical ecology & deep learning
+
+```{r sketch, fig.width=6, out.width=270, fig.pos="center", fig.align='center'}
+knitr::include_graphics("figs/sketch.jpg")
+```
+
+
+
+## Science-based deep learning
 
 ### Universal differential equations\footnote[frame]{\tiny{Rackauckas, Christopher, et al. "Universal Differential Equations for Scientific Machine Learning." arXiv preprint arXiv:2001.04385 (2020).}}
 
@@ -326,14 +332,13 @@ $$u' = \text{NN}_\theta(u, t)$$
 where $u$ is a state, and $\text{NN}_\theta$ is a neural net.
 
 
-## Science-based deep learning is multifaceted
+## Science-based deep learning
 
 ### Physics-guided neural networks\footnote[frame]{\tiny{Karpatne, Anuj, et al. "Physics-guided neural networks (pgnn): An application in lake temperature modeling." arXiv preprint arXiv:1710.11431 (2017).}}
 
 $$\text{Loss} = \text{Error} + \text{Model complexity} + \text{Physical inconsistency}$$
 
-
-## Interactive neural hierarchical models at **github.com/mbjoseph/neuralecology**
+## Interactive neural hierarchical models: \newline github.com/mbjoseph/neuralecology
 
 [![Binder](figs/badge_logo.pdf)](https://mybinder.org/v2/gh/mbjoseph/neuralecology/master)
 

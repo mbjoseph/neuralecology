@@ -291,7 +291,7 @@ pt_alpha <- .5
 pt_size <- .5
 
 p0 <- dec_df %>%
-  ggplot(aes(y = phid_cor, x = gammad_cor)) + 
+  ggplot(aes(y = phid_cor, x = gammad_cor, group = english)) + 
   geom_point(alpha = pt_alpha / 3, size = pt_size) + 
   geom_hline(yintercept = 0, linetype = 'dashed', color = 'grey') + 
   geom_vline(xintercept = 0, linetype = 'dashed', color = 'grey') + 
@@ -421,3 +421,50 @@ persist_dist_plot %>%
            width = 6, height = 9, dpi = dpi)
   }
 
+
+
+# Write out a simpler plot for slides -------------------------------------
+
+ex_plot <- z_mles %>%
+  filter(z_mle == 1, year != max(year)) %>%
+  left_join(bbs_species) %>%
+  filter(english %in% "Indigo Bunting") %>%
+  left_join(bbs_routes) %>%
+  group_by(Latitude, Longitude, english) %>%
+  summarize(phi = mean(phi), 
+            gamma = mean(gamma), 
+            p = mean(p)) %>%
+  st_as_sf(coords = c("Longitude", "Latitude"), 
+           crs = 4326, agr = "constant") %>%
+  st_transform(epsg) %>%
+  left_join(dec_df) %>%
+  mutate(english = reorder(english, -phid_cor)) %>%
+  select(english, phi, gamma, p, geometry) %>%
+  gather(var, value, -english, -geometry) %>%
+  group_by(english, var) %>%
+  mutate(comp_value = ifelse(var == "phi", 1 - value, value), 
+         comp_label = case_when(
+           var == "phi" ~ "Extinction", 
+           var == "gamma" ~ "Colonization", 
+           var == "p" ~ "Detection"), 
+         comp_label = factor(comp_label, 
+                             levels = c("Colonization", 
+                                        "Extinction",
+                                        "Detection"))) %>%
+  ungroup %>%
+  ggplot() +
+  geom_sf(data = ecoregions, 
+          fill = 'white',  
+          size =.1, alpha = .9) +
+  scale_color_viridis_c(option = "A", "Probability") +
+  geom_sf(data = routes_sf,
+          alpha = .1, size = .1, color = "black") +
+  geom_sf(aes(color = comp_value), size = .2) + 
+  facet_wrap(~ comp_label) + 
+  theme_minimal() + 
+  theme(axis.text = element_blank(),
+        plot.margin = unit(c(0, 5, 0, 5), "pt")) + 
+  ggtitle("Indigo Bunting")
+ex_plot
+ggsave("slides/visec2020/figs/ex-gradient.pdf", plot = ex_plot, 
+       width = 8, height = 3)

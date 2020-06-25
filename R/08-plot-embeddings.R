@@ -149,7 +149,7 @@ make_species_plot <- function(sp1, sp2, legend = TRUE) {
   p
 }
 
-make_pair_plot <- function(ref_sp, legend = TRUE, title = "") {
+make_pair_plot <- function(ref_sp, legend = TRUE, title = "", annotate = TRUE) {
   cosine_df <- cosine_sim %>%
     filter(english == ref_sp)
   
@@ -164,16 +164,21 @@ make_pair_plot <- function(ref_sp, legend = TRUE, title = "") {
   
   p_near <-  make_species_plot(sp1 = nearest_lower, sp2 = focal_lower, 
                                legend = FALSE) +
-    ggtitle(title) + 
-    annotate(geom = "text", x = -Inf, y = Inf, hjust = 0, vjust = 1,
-             label = paste("Similarity:", round(cosine_df$similarity, 2)))
+    ggtitle(title)
   
   p_far <- make_species_plot(sp1 = farthest_lower, sp2 = focal_lower, 
                              legend = legend) + 
     theme(axis.text.y = element_blank()) + 
-    ylab("") + 
-    annotate(geom = "text", x = Inf, y = Inf, hjust = 1, vjust = 1,
-             label = paste("Similarity:", round(cosine_df$far_similarity, 2)))
+    ylab("")
+  
+  if (annotate) {
+    p_near <- p_near + 
+      annotate(geom = "text", x = -Inf, y = Inf, hjust = 0, vjust = 1,
+               label = paste("Similarity:", round(cosine_df$similarity, 2)))
+    p_far <- p_far + 
+      annotate(geom = "text", x = Inf, y = Inf, hjust = 1, vjust = 1,
+               label = paste("Similarity:", round(cosine_df$far_similarity, 2)))
+  }
   
   p <- p_near + p_far
   p
@@ -183,6 +188,9 @@ p <- make_pair_plot("Mourning Dove", legend = FALSE, title = "(a)") /
   make_pair_plot("Eurasian Collared-Dove", title = "(b)") / 
   make_pair_plot("Bald Eagle", legend = FALSE, title = "(c)")
 p
+
+ex_p <- make_pair_plot("Mourning Dove", legend = FALSE, title = "", annotate = FALSE)
+ggsave(filename = "slides/visec2020/figs/ex-assoc.pdf", width = 7, height = 3)
 
 
 r_dpi <- 150
