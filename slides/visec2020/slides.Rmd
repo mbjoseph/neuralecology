@@ -285,7 +285,7 @@ knitr::include_graphics("figs/ex-assoc.pdf")
 ```
 
 
-## Ecological inference
+## Inference about range boundaries
 
 ![](figs/ex-gradient.pdf)
 
