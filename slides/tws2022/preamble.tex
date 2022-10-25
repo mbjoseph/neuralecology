@@ -1,0 +1,99 @@
+
+%Beamerの設定
+\usetheme{Boadilla}
+
+%Beamerフォント設定
+\usepackage[T1]{fontenc}
+% \usepackage{newtxtext}
+% \usepackage{newtxmath} % TXフォント
+\usepackage{sfmath}
+% \usepackage[deluxe,uplatex]{otf} % 日本語多ウェイト化
+% \usepackage[noto-otc]{pxchfon} %Noto CJK JPを指定
+% \usepackage{pxjahyper} % PDF目次文字化け回避(platexでは不要)
+\renewcommand{\familydefault}{\sfdefault}  % 英文をサンセリフ体に
+\DeclareSymbolFont{operators}{OT1}{\sfdefault}{m}{n}
+\SetSymbolFont{operators}{bold}{OT1}{\sfdefault}{b}{n}
+\usefonttheme{structurebold} % タイトル部を太字
+\setbeamerfont{alerted text}{series=\bfseries} % Alertを太字
+\setbeamerfont{section in toc}{series=\mdseries} % 目次は太字にしない
+\setbeamerfont{frametitle}{size=\Large} % フレームタイトル文字サイズ
+\setbeamerfont{title}{size=\LARGE} % タイトル文字サイズ
+\setbeamerfont{date}{size=\small}  % 日付文字サイズ
+\usepackage{helvet}
+
+% %Beamer色設定
+\definecolor{UniBlue}{RGB}{37,140,34}
+\definecolor{AlertOrange}{RGB}{255,76,0}
+\definecolor{AlmostBlack}{RGB}{38,38,38}
+\setbeamercolor{normal text}{fg=AlmostBlack}  % 本文カラー
+\setbeamercolor{structure}{fg=UniBlue} % 見出しカラー
+\setbeamercolor{block title}{fg=UniBlue!50!black} % ブロック部分タイトルカラー
+\setbeamercolor{alerted text}{fg=AlertOrange} % \alert 文字カラー
+\mode<beamer>{
+    \definecolor{BackGroundGray}{RGB}{254,254,254}
+    \setbeamercolor{background canvas}{bg=BackGroundGray} % スライドモードのみ背景をわずかにグレーにする
+}
+
+%フラットデザイン化
+\setbeamertemplate{blocks}[rounded] % Blockの影を消す
+\useinnertheme{circles} % 箇条書きをシンプルに
+\setbeamertemplate{navigation symbols}{} % ナビゲーションシンボルを消す
+\setbeamertemplate{footline}[frame number] % フッターはスライド番号のみ
+
+%タイトルページ
+\setbeamertemplate{title page}{%
+    \vspace{2.5em}
+    {\usebeamerfont{title} \usebeamercolor[fg]{title} \inserttitle \par}
+    {\usebeamerfont{subtitle}\usebeamercolor[fg]{subtitle}\insertsubtitle \par}
+    \vspace{1.5em}
+    \begin{flushright}
+        \usebeamerfont{author}\insertauthor\par
+        \usebeamerfont{institute}\insertinstitute \par
+        \vspace{3em}
+        \usebeamerfont{date}\insertdate\par
+        \usebeamercolor[fg]{titlegraphic}\inserttitlegraphic
+    \end{flushright}
+}
+
+% Algorithm系
+\usepackage{algorithm}
+\usepackage[noend]{algorithmic}
+\algsetup{linenosize=\color{fg!50}\footnotesize}
+\renewcommand\algorithmicdo{:}
+\renewcommand\algorithmicthen{:}
+\renewcommand\algorithmicrequire{\textbf{Input:}}
+\renewcommand\algorithmicensure{\textbf{Output:}}
+
+% TikZ
+\usepackage{tikz}
+\usetikzlibrary{positioning,shapes,arrows}
+
+% 定理
+\theoremstyle{definition}
+\newenvironment{mythm}{\begin{alertblock}{定理}}{\end{alertblock}} %自分の結果は赤色で表示
+
+\AtBeginSection[]{
+    \frame{\tableofcontents[currentsection, hideallsubsections]} %目次スライド
+}
+
+
+%タイトル
+\title{Neural networks as drop-in function approximators}
+\author{\textbf{Maxwell B. Joseph}}
+\date{Nov 2022}
+\institute{Natural Capital Exchange}
+
+% custom diagrams
+\usetikzlibrary{shapes.geometric, arrows}
+\tikzstyle{whitebox} = [rectangle, rounded corners, minimum width=2cm, minimum height=1cm,text centered, draw=black, fill=white]
+\tikzstyle{box} = [rectangle, rounded corners, minimum width=2cm, minimum height=1cm,text centered, draw=black, fill=UniBlue!50!white]
+\tikzstyle{par} = [rectangle, rounded corners, minimum width=2cm, minimum height=1cm,text centered, draw=black, fill=AlertOrange!50!white]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+\tikzstyle{neuron}=[circle,fill=black!25,minimum size=17pt,inner sep=0pt]
+
+\def\layersep{2cm}
+
+
+% custom footnote symbology
+\usepackage[symbol]{footmisc}
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}

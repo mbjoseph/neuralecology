@@ -1,0 +1,380 @@
+---
+title: "Neural networks as drop-in function approximators"
+author: |
+  | Maxwell B. Joseph
+  | @mxwlj
+date: "TWS 2022"
+output: 
+  beamer_presentation:
+    includes: 
+      in_header: "preamble.tex"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+## Suppose we mapped every tree
+
+```{r earth, fig.width=6, out.width=200}
+knitr::include_graphics("figs/goes-earth.jpg")
+```
+
+\tiny GOES-East, 2014-04-22, NASA Goddard Space Flight Center
+
+
+##
+
+\textbf{\Huge The data revolution and deep learning aren't sufficient for scientific inference.}
+
+
+## Science-based hierarchical models\footnote[frame]{\tiny{Berliner LM. Hierarchical Bayesian time series models. Maximum entropy and Bayesian methods 1996: 15-22}}
+
+
+\begin{center}
+\begin{tikzpicture}
+\node (states) [par] {States};
+\node (parameters) [par, left of=states, xshift=-2cm, yshift=2cm]{Parameters};
+\node (observations) [whitebox, right of=states, above of=states, xshift=2cm, yshift=1cm] {Observations};
+\draw [arrow] (states) -- (observations);
+\draw [arrow] (parameters) -- (observations);
+\draw [arrow] (parameters) -- (states);
+\end{tikzpicture}
+\end{center}
+
+
+## Occupancy models are hierarchical\footnote[frame]{\tiny{MacKenzie, Darryl I., et al. "Estimating site occupancy rates when detection probabilities are less than one." Ecology 83.8 (2002): 2248-2255.}} 
+
+\begin{center}
+\begin{tikzpicture}
+\node (process) [par] {Occupancy state $z$};
+\node (data) [whitebox, right of=process, above of=process, xshift=2cm, yshift=1cm] {Detection data $y$};
+\node (p) [par, left of=process, xshift=-2.5cm, yshift=2cm]{$p$};
+\node (psi) [par, left of=process, xshift=-2.5cm]{$\psi$};
+\draw [arrow] (p) -- (data);
+\draw [arrow] (process) -- (data);
+\draw [arrow] (psi) -- (process);
+\end{tikzpicture}
+\end{center}
+
+$$y \sim \text{Bernoulli}(z \times p)$$
+
+$$z \sim \text{Bernoulli}(\psi)$$
+
+## Parameters can depend on covariates
+
+e.g, $f$ maps covariates $X$ to occupancy probability $\psi$:
+
+$$\psi = f(X; \theta).$$
+
+## Often we assume linear relationships
+
+e.g., linear on the logit scale:
+
+$$\psi = \text{logit}^{-1}(X \beta).$$
+$\quad$
+
+\begin{center}
+\begin{tikzpicture}
+  % linear mapping
+  \tikzstyle{every pin edge}=[<-,shorten <=1pt]
+  \tikzstyle{input neuron}=[neuron, draw=black, fill=white];
+  \tikzstyle{output neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
+  \tikzstyle{annot} = [text width=4em, text centered]
+  
+  % Draw the input layer nodes
+  \foreach \name / \y in {1,...,4}
+  % This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+      \node[input neuron] (I-\name) at (0,-\y) {$x_{\y}$};
+  
+  % Draw the output layer node
+  \node[output neuron, right of=I-2, above of=I-3, xshift=1cm, yshift=-0.45cm] (O) {$\psi$};
+  
+  % Connect every node in the hidden layer with the output layer
+  \foreach \source in {1,...,4}
+      \draw (I-\source) edge (O);
+
+\end{tikzpicture}
+\end{center}
+
+
+## We can accommodate nonlinearity
+
+- Polynomials
+- Splines
+- Random fields
+- Gaussian processes
+- **Neural networks?**
+
+## Neural networks approximate functions
+
+\begin{center}
+\begin{tikzpicture}
+\tikzstyle{every pin edge}=[<-,shorten <=1pt]
+\tikzstyle{input neuron}=[neuron, draw=black, fill=white];
+\tikzstyle{output neuron}=[neuron, draw=black, fill=white];
+\tikzstyle{hidden neuron}=[neuron, draw=black, fill=UniBlue!50!white];
+\tikzstyle{annot} = [text width=4em, text centered]
+
+% Draw the input layer nodes
+\foreach \name / \y in {1,...,4}
+% This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+    \node[input neuron] (I-\name) at (0,-\y) {$x_{\y}$};
+
+% Draw the hidden layer nodes
+\foreach \name / \y in {1,...,5}
+    \path[yshift=0.5cm]
+        node[hidden neuron] (H-\name) at (\layersep,-\y cm) {$h_{\y}$};
+
+% Draw the output layer node
+\node[output neuron, right of=H-3, xshift=1cm] (O) {$\hat y$};
+
+% Connect every node in the input layer with every node in the
+% hidden layer.
+\foreach \source in {1,...,4}
+    \foreach \dest in {1,...,5}
+        \path (I-\source) edge (H-\dest);
+
+% Connect every node in the hidden layer with the output layer
+\foreach \source in {1,...,5}
+    \path (H-\source) edge (O);
+    
+\end{tikzpicture}
+\end{center}
+
+
+## Neural hierarchical models\footnote[frame]{\tiny{Joseph MB. 2020. Neural hierarchical models of ecological populations. Ecology Letters, 23(4).}} 
+
+Neural network predicts parameters
+
+$\;$
+
+\begin{center}
+\begin{tikzpicture}
+\tikzstyle{every pin edge}=[<-,shorten <=1pt]
+\tikzstyle{input neuron}=[neuron, draw=black, fill=white];
+\tikzstyle{output neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
+\tikzstyle{hidden neuron}=[neuron, draw=black, fill=UniBlue!50!white];
+\tikzstyle{annot} = [text width=4em, text centered]
+
+% Draw the input layer nodes
+\foreach \name / \y in {1,...,4}
+% This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+    \node[input neuron] (I-\name) at (0,-\y) {$x_{\y}$};
+
+% Draw the hidden layer nodes
+\foreach \name / \y in {1,...,5}
+    \path[yshift=0.5cm]
+        node[hidden neuron] (H-\name) at (\layersep,-\y cm) {$h_{\y}$};
+
+% Draw the output layer node
+\node[output neuron, right of=H-3, xshift=1cm] (O) {$\psi$};
+
+% Connect every node in the input layer with every node in the
+% hidden layer.
+\foreach \source in {1,...,4}
+    \foreach \dest in {1,...,5}
+        \path (I-\source) edge (H-\dest);
+
+% Connect every node in the hidden layer with the output layer
+\foreach \source in {1,...,5}
+    \path (H-\source) edge (O);
+
+\end{tikzpicture}
+\end{center}
+
+## Neural hierarchical models\footnote[frame]{\tiny{Joseph MB. 2020. Neural hierarchical models of ecological populations. Ecology Letters, 23(4).}}
+
+Hierarchical model includes a neural network
+
+$\;$
+
+\begin{center}
+\begin{tikzpicture}
+\tikzstyle{every pin edge}=[<-,shorten <=1pt]
+\tikzstyle{input neuron}=[neuron, draw=black, fill=white];
+\tikzstyle{output neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
+\tikzstyle{hidden neuron}=[neuron, draw=black, fill=UniBlue!50!white];
+\tikzstyle{annot} = [text width=4em, text centered]
+
+% Draw the input layer nodes
+\foreach \name / \y in {1,...,4}
+% This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+    \node[input neuron] (I-\name) at (0,-\y) {$x_{\y}$};
+
+% Draw the hidden layer nodes
+\foreach \name / \y in {1,...,5}
+    \path[yshift=0.5cm]
+        node[hidden neuron] (H-\name) at (\layersep,-\y cm) {$h_{\y}$};
+
+% Draw the output layer node
+\node[output neuron, right of=H-3, xshift=1cm] (O) {$\psi$};
+
+% Draw other hierarchical model components
+\node[output neuron, above of=O] (p) {$p$};
+\node[output neuron,label=below:\tiny Occupancy, right of=O] (z) {$z$};
+\node[input neuron,label=above:\tiny Detection data, above of=z, right of=z] (y) {$y$};
+
+\path (O) edge (z);
+\path (z) edge (y);
+\path (p) edge (y);
+
+
+% Connect every node in the input layer with every node in the
+% hidden layer.
+\foreach \source in {1,...,4}
+    \foreach \dest in {1,...,5}
+        \path (I-\source) edge (H-\dest);
+
+% Connect every node in the hidden layer with the output layer
+\foreach \source in {1,...,5}
+    \path (H-\source) edge (O);
+
+\end{tikzpicture}
+\end{center}
+
+
+## Parameter estimation
+
+If we observe $y_i$ for $i=1,...,N$:
+
+$$\text{Loss}(\theta) = - \frac{1}{N} \sum_{i=1}^N \underbrace{\ell(y_i, \theta)}_{\substack{\text{Log} \\ \text{probability}}}$$
+
+- Stochastic minibatch optimization
+
+## Ex. 1: a neural joint species  \newline dynamic occupancy model
+
+North American Breeding Bird Survey:
+
+- 647 species 
+- 21 years
+- 4,540 survey routes (50 stops each)
+- 38 million observations
+
+## Dynamic occupancy models\footnote[frame]{\tiny{Royle JA, Kéry M. A Bayesian state‐space formulation of dynamic occupancy models. Ecology. 2007 Jul;88(7):1813-23.}}
+
+![](figs/dynamic-occ.pdf)
+
+
+## Neural joint species dynamic occupancy model
+
+![](figs/figs2-wide.pdf)
+
+\tiny Species encoder extends Chen, Di, et al. "Deep multi-species embedding." arXiv preprint arXiv:1609.09353 (2016) to share information among related species.
+
+## Some familiar faces
+
+![](figs/model-equations.pdf)
+
+
+## Predictive performance on the test set
+
+```{r auc_map, fig.width=6, out.width=300}
+knitr::include_graphics("figs/auc_map.pdf")
+```
+
+
+## Nonlinear dependence among species
+
+```{r occscatt, fig.width=6, out.width=300}
+knitr::include_graphics("figs/ex-assoc.pdf")
+```
+
+
+## Inference about range boundaries
+
+![](figs/ex-gradient.pdf)
+
+\tiny Holt RD, Keitt TH. Alternative causes for range limits: a metapopulation perspective. Ecology Letters. 2000 Jan;3(1):41-7.
+
+## Ex. 2: convolutional animal movement model
+
+![](figs/example-trajectory.pdf)
+
+
+## Parameterizing a hidden Markov model \newline with a convolutional neural network
+
+![](figs/conv_hmm_edited.pdf)
+
+
+## Performance is better with more data
+
+![](figs/convhmm-perf.pdf)
+
+## Test set predictions
+
+![](figs/top-prob-chips.png)
+
+## Neural hierarchical models \newline augment existing models
+
+e.g., if you know $f$: 
+
+$$\text{logit}(\psi) = \underbrace{f(x)}_{\text{Known}} + \underbrace{\text{NN}_\theta(x)}_{\text{Unknown}}$$
+
+
+## Statistical ecology & deep learning
+
+```{r sketch, fig.width=6, out.width=270, fig.pos="center", fig.align='center'}
+knitr::include_graphics("figs/sketch.jpg")
+```
+
+
+
+## Science-based deep learning
+
+### Universal differential equations\footnote[frame]{\tiny{Rackauckas, Christopher, et al. "Universal Differential Equations for Scientific Machine Learning." arXiv preprint arXiv:2001.04385 (2020).}}
+
+$$u' = \text{NN}_\theta(u, t)$$
+where $u$ is a state, and $\text{NN}_\theta$ is a neural net.
+
+
+## Science-based deep learning
+
+### Physics-guided neural networks\footnote[frame]{\tiny{Karpatne, Anuj, et al. "Physics-guided neural networks (pgnn): An application in lake temperature modeling." arXiv preprint arXiv:1710.11431 (2017).}}
+
+$$\text{Loss} = \text{Error} + \text{Model complexity} + \text{Physical inconsistency}$$
+
+## Interactive neural hierarchical models: \newline github.com/mbjoseph/neuralecology
+
+[![Binder](figs/badge_logo.pdf)](https://mybinder.org/v2/gh/mbjoseph/neuralecology/master)
+
+- Site-occupancy model 
+- Dynamic occupancy model
+- N-mixture model
+- Capture-recapture model
+
+
+## Thank you
+
+
+\small
+**Get in touch:** maxwell.b.joseph@colorado.edu, @mxwlj
+
+**Funding:** University of Colorado Grand Challenge, Earth Lab
+
+**Data:** North American Breeding Bird Survey & its participants, National Ecological Observation Network
+
+**Thanks:** Two anonymous reviewers, Justin Kitzes, Carl Boettiger, David Zonana, Roland Knapp, ESIP/NASA AIST programs
+
+
+
+\normalsize
+
+### Code
+
+https://github.com/mbjoseph/neuralecology
+
+### Paper
+
+Joseph MB. 2020. Neural hierarchical models of ecological populations. Ecology Letters, 23(4).
+
+## Bonus slides
+
+
+## Bayesian interpretation
+
+Gaussian prior on weights $\rightarrow$ $L_2$ penalty
+
+$$\text{Loss}(\theta) = - \frac{1}{N} \sum_{i=1}^N \ell(y_i, \theta) + L_2(\theta).$$
