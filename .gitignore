@@ -127,6 +127,5 @@ dmypy.json
 nohup.out
 runs
 *.rds
-*.png
 Rplots.pdf
 README.html

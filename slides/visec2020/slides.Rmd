@@ -32,8 +32,6 @@ knitr::include_graphics("figs/goes-earth.jpg")
 
 ## Science-based hierarchical models\footnote[frame]{\tiny{Berliner LM. Hierarchical Bayesian time series models. Maximum entropy and Bayesian methods 1996: 15-22}}
 
-\def\layersep{2cm}
-
 
 \begin{center}
 \begin{tikzpicture}
@@ -307,7 +305,7 @@ knitr::include_graphics("figs/ex-assoc.pdf")
 
 ## Test set predictions
 
-![](../../fig/top-prob-chips.png)
+![](figs/top-prob-chips.png)
 
 ## Neural hierarchical models \newline augment existing models
 
@@ -380,42 +378,3 @@ Joseph MB. 2020. Neural hierarchical models of ecological populations. Ecology L
 Gaussian prior on weights $\rightarrow$ $L_2$ penalty
 
 $$\text{Loss}(\theta) = - \frac{1}{N} \sum_{i=1}^N \ell(y_i, \theta) + L_2(\theta).$$
-
-
-## 
-
-![](../../fig/centroid-displacement.pdf)
-
-
-## 
-
-![](../../fig/persist-dist-plot.pdf)
-
-
-## 
-
-![](../../fig/roc-test.jpg)
-
-
-## 
-
-![](../../fig/route_tsne.jpg)
-
-## 
-
-![](../../fig/figs2.pdf)
-
-
-## 
-
-![](../../fig/movement-distributions.pdf)
-
-
-## 
-
-![](../../fig/traj-plot.png)
-
-
-## 
-
-![](../../fig/transition-densities.png)
