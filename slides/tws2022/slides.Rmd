@@ -25,8 +25,6 @@ knitr::opts_chunk$set(echo = FALSE)
   }
 \end{center}
 
-\;
-
 You can replace affine transforms ($X \beta$) with neural networks. 
 
 
@@ -66,13 +64,12 @@ $$z \sim \text{Bernoulli}(\psi)$$
 
 ## Parameters can depend on covariates
 
-e.g, $f$ maps covariates $X$ to occupancy probability $\psi$:
+the function $f$ maps covariates $X$ to occupancy probability $\psi$:
 
 $$\psi = f(X; \theta).$$
 
 ## Often we assume linear relationships
 
-e.g., linear on the logit scale:
 
 $$\psi = \text{logit}^{-1}(X \beta).$$
 $\quad$
@@ -102,7 +99,7 @@ $\quad$
 
 ## Generally we are approximating a function
 
-e.g., using some function $f$ parameterized by $\theta$:
+function $f$ is parameterized by $\theta$:
 
 $$\psi = f_\theta(X).$$
 $\quad$
@@ -270,6 +267,34 @@ $\;$
 \end{center}
 
 
+## Imperfect data motivate hierarchical models
+
+- Occupancy models (nondetection $\neq$ absence) 
+- N-mixture models (count $\neq$ abundance)
+- Capture-recapture models (not captured $\neq$ dead)
+- Animal movement models (location $\neq$ behavioral state)
+
+## 
+
+![](figs/quad/empty-phase-space.pdf)
+
+
+
+## 
+
+![](figs/quad/one-phase-space.pdf)
+
+
+## 
+
+![](figs/quad/two-phase-space.pdf)
+
+## 
+
+![](figs/quad/partial-phase-space.pdf)
+
+
+
 ## Example: convolutional animal movement model
 
 ![](figs/example-trajectory.pdf)
@@ -279,10 +304,6 @@ $\;$
 
 ![](figs/conv_hmm_edited.pdf)
 
-
-## Performance is better with more data
-
-![](figs/convhmm-perf.pdf)
 
 ## Test set predictions
 
@@ -309,6 +330,7 @@ $$\text{Loss}(\theta) = - \sum_{i} \underbrace{\ell(y_i, \theta)}_{\substack{\te
 
 - interpretability
 - implementation
+- kinda complicated
 - point estimates easy, posteriors hard
 
 
@@ -342,6 +364,19 @@ where $u$ is a state, and $\text{NN}_\theta$ is a neural net.
 ### Physics-guided neural networks\footnote[frame]{\tiny{Karpatne, Anuj, et al. "Physics-guided neural networks (pgnn): An application in lake temperature modeling." arXiv preprint arXiv:1710.11431 (2017).}}
 
 $$\text{Loss} = \text{Error} + \text{Model complexity} + \text{Physical inconsistency}$$
+
+
+## If you only remember one thing...
+
+
+\begin{center}
+  \scalebox{2}{%
+    $X \beta \rightarrow NN_{\theta}(X)$%
+  }
+\end{center}
+
+You can replace affine transforms ($X \beta$) with neural networks. 
+
 
 ## Interactive examples: \newline github.com/mbjoseph/neuralecology
 

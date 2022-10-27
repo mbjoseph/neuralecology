@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="137.00894mm"
+   height="136.57646mm"
+   viewBox="0 0 137.00894 136.57646"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
+   sodipodi:docname="empty-phase-space.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="mm"
+     showgrid="false"
+     fit-margin-top="10"
+     fit-margin-left="10"
+     fit-margin-right="10"
+     fit-margin-bottom="10"
+     inkscape:zoom="2.1595538"
+     inkscape:cx="261.39659"
+     inkscape:cy="258.61824"
+     inkscape:window-width="2560"
+     inkscape:window-height="1376"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-23.473739,-16.618651)">
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.242;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect846"
+       width="50"
+       height="50"
+       x="50.361683"
+       y="26.739655"
+       rx="0.88813245"
+       ry="0.93964779" />
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.242;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect846-3"
+       width="50"
+       height="50"
+       x="100.36168"
+       y="26.739651"
+       rx="0.88813245"
+       ry="0.93964779" />
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.242;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect846-6"
+       width="50"
+       height="50"
+       x="50.361683"
+       y="76.739655"
+       rx="0.88813245"
+       ry="0.93964779" />
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.242;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect846-7"
+       width="50"
+       height="50"
+       x="100.36168"
+       y="76.739655"
+       rx="0.88813245"
+       ry="0.93964779" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:5.64444px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="-100.30797"
+       y="37.656269"
+       id="text4773-5"
+       transform="rotate(-90)"><tspan
+         sodipodi:role="line"
+         id="tspan4771-3"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444px;font-family:Helvetica;-inkscape-font-specification:Helvetica;stroke-width:0.264583"
+         x="-100.30797"
+         y="37.656269">Observation model</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:5.64444px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="71.19693"
+       y="141.96463"
+       id="text4773"><tspan
+         sodipodi:role="line"
+         id="tspan4771"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444px;font-family:Helvetica;-inkscape-font-specification:Helvetica;stroke-width:0.264583"
+         x="71.19693"
+         y="141.96463">Function approximation</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:4.23333px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="68.408379"
+       y="132.89557"
+       id="text12850"><tspan
+         sodipodi:role="line"
+         id="tspan12848"
+         style="font-size:4.23333px;stroke-width:0.264583"
+         x="68.408379"
+         y="132.89557">Simple</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:4.23333px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="117.80632"
+       y="132.89557"
+       id="text12850-5"><tspan
+         sodipodi:role="line"
+         id="tspan12848-6"
+         style="font-size:4.23333px;stroke-width:0.264583"
+         x="117.80632"
+         y="132.89557">Complex</tspan></text>
+    <g
+       id="g15060"
+       transform="rotate(-90,57.40115,117.96338)">
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:4.23333px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+         x="62.712227"
+         y="106.36115"
+         id="text12850-2"><tspan
+           sodipodi:role="line"
+           id="tspan12848-9"
+           style="font-size:4.23333px;stroke-width:0.264583"
+           x="62.712227"
+           y="106.36115">Simple</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:4.23333px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+         x="112.11017"
+         y="106.36115"
+         id="text12850-5-1"><tspan
+           sodipodi:role="line"
+           id="tspan12848-6-2"
+           style="font-size:4.23333px;stroke-width:0.264583"
+           x="112.11017"
+           y="106.36115">Complex</tspan></text>
+    </g>
+  </g>
+</svg>
