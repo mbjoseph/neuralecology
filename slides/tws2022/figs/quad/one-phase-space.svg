@@ -179,7 +179,7 @@
          id="tspan12848-6"
          style="font-size:4.23333px;stroke-width:0.264583"
          x="117.80632"
-         y="132.89557">Complex</tspan></text>
+         y="132.89557">Flexible</tspan></text>
     <g
        id="g15060"
        transform="rotate(-90,57.40115,117.96338)">
@@ -209,39 +209,23 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:3.88056px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
-       x="58.32523"
-       y="119.54781"
-       id="text20309"><tspan
-         sodipodi:role="line"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.88056px;font-family:helvetica;-inkscape-font-specification:helvetica;text-align:center;text-anchor:middle;stroke-width:0.264583"
-         x="58.32523"
-         y="119.54781"
-         id="tspan12118">sample</tspan><tspan
-         sodipodi:role="line"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.88056px;font-family:helvetica;-inkscape-font-specification:helvetica;text-align:center;text-anchor:middle;stroke-width:0.264583"
-         x="58.32523"
-         y="124.51789"
-         id="tspan12122">mean</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:3.88056px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
-       x="86.431511"
-       y="85.98764"
+       x="85.778381"
+       y="87.781212"
        id="text20309-9"><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.88056px;font-family:helvetica;-inkscape-font-specification:helvetica;text-align:center;text-anchor:middle;stroke-width:0.264583"
-         x="86.431511"
-         y="85.98764"
+         x="85.778381"
+         y="87.781212"
          id="tspan22121-2">generalized</tspan><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.88056px;font-family:helvetica;-inkscape-font-specification:helvetica;text-align:center;text-anchor:middle;stroke-width:0.264583"
-         x="86.431511"
-         y="90.957726"
+         x="85.778381"
+         y="92.751297"
          id="tspan56227">additive</tspan><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.88056px;font-family:helvetica;-inkscape-font-specification:helvetica;text-align:center;text-anchor:middle;stroke-width:0.264583"
-         x="86.431511"
-         y="95.927818"
+         x="85.778381"
+         y="97.72139"
          id="tspan56229">models</tspan></text>
     <text
        xml:space="preserve"
@@ -266,18 +250,18 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:3.88056px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
-       x="71.447746"
-       y="104.74222"
+       x="67.678535"
+       y="109.66203"
        id="text20309-6"><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.88056px;font-family:helvetica;-inkscape-font-specification:helvetica;text-align:center;text-anchor:middle;stroke-width:0.264583"
-         x="71.447746"
-         y="104.74222"
+         x="67.678535"
+         y="109.66203"
          id="tspan12122-9">linear</tspan><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.88056px;font-family:helvetica;-inkscape-font-specification:helvetica;text-align:center;text-anchor:middle;stroke-width:0.264583"
-         x="71.447746"
-         y="109.7123"
+         x="67.678535"
+         y="114.63211"
          id="tspan12479">regression</tspan></text>
   </g>
 </svg>

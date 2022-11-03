@@ -25,7 +25,7 @@ knitr::opts_chunk$set(echo = FALSE)
   }
 \end{center}
 
-You can replace affine transforms ($X \beta$) with neural networks. 
+You can replace $X \beta$ with a neural network. 
 
 
 
@@ -64,9 +64,9 @@ $$z \sim \text{Bernoulli}(\psi)$$
 
 ## Parameters can depend on covariates
 
-the function $f$ maps covariates $X$ to occupancy probability $\psi$:
-
 $$\psi = f(X; \theta).$$
+
+![](figs/occ.png)
 
 ## Often we assume linear relationships
 
@@ -97,35 +97,6 @@ $\quad$
 \end{tikzpicture}
 \end{center}
 
-## Generally we are approximating a function
-
-function $f$ is parameterized by $\theta$:
-
-$$\psi = f_\theta(X).$$
-$\quad$
-
-\begin{center}
-\begin{tikzpicture}
-  % linear mapping
-  \tikzstyle{every pin edge}=[<-,shorten <=1pt]
-  \tikzstyle{input neuron}=[neuron, draw=black, fill=white];
-  \tikzstyle{output neuron}=[neuron, draw=black, fill=AlertOrange!50!white];
-  \tikzstyle{annot} = [text width=4em, text centered]
-  
-  % Draw the input layer nodes
-  \foreach \name / \y in {1,...,4}
-  % This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
-      \node[input neuron] (I-\name) at (0,-\y) {$x_{\y}$};
-  
-  % Draw the output layer node
-  \node[output neuron, right of=I-2, above of=I-3, xshift=1cm, yshift=-0.45cm] (O) {$\psi$};
-  
-  % Connect every node in the hidden layer with the output layer
-  \foreach \source in {1,...,4}
-      \draw (I-\source) edge (O);
-
-\end{tikzpicture}
-\end{center}
 
 ## We can accommodate nonlinearity
 
@@ -135,6 +106,23 @@ $\quad$
 - Gaussian processes
 - Tree-based methods (random forest, XGBoost)
 - **Neural networks?**
+
+
+## Related work: tree-based function approximators\footnote[frame]{\tiny{Hutchinson, Rebecca, Li-Ping Liu, and Thomas Dietterich. "Incorporating boosted regression trees into ecological latent variable models." Proceedings of the AAAI Conference on Artificial Intelligence. Vol. 25. No. 1. 2011.}} 
+
+
+\begin{center}
+  \scalebox{2}{%
+    $X \beta \rightarrow f_{\theta}(X),$%
+  }
+\end{center}
+
+where $f$ is a **boosted regression tree**.
+
+
+(speculation: better for tabular features?)\footnote[frame]{\tiny{Grinsztajn, Leo, Edouard Oyallon, and Gael Varoquaux. "Why do tree-based models still outperform deep learning on typical tabular data?." Thirty-sixth Conference on Neural Information Processing Systems Datasets and Benchmarks Track. 2022.}}
+
+
 
 ## Neural networks approximate functions
 
@@ -269,10 +257,10 @@ $\;$
 
 ## Imperfect data motivate hierarchical models
 
-- Occupancy models (nondetection $\neq$ absence) 
-- N-mixture models (count $\neq$ abundance)
-- Capture-recapture models (not captured $\neq$ dead)
-- Animal movement models (location $\neq$ behavioral state)
+- Occupancy (nondetection $\neq$ absence) 
+- N-mixture (count $\neq$ abundance)
+- Capture-recapture (not captured $\neq$ dead)
+- Animal movement (location $\neq$ behavioral state)
 
 ## 
 
@@ -314,7 +302,7 @@ $\;$
 
 We observe $y_{1:N}$ and minimize loss:
 
-$$\text{Loss}(\theta) = - \sum_{i} \underbrace{\ell(y_i, \theta)}_{\substack{\text{Log} \\ \text{probability}}} + \text{other stuff}$$
+$$\text{Loss}(\theta) = - \sum_{i} \underbrace{\ell(y_i, \theta)}_{\substack{\text{Log} \\ \text{probability}}}$$
 
 - Stochastic minibatch optimization
 
@@ -324,68 +312,75 @@ $$\text{Loss}(\theta) = - \sum_{i} \underbrace{\ell(y_i, \theta)}_{\substack{\te
 **Good**
 
 - feature extraction from images & time series
-- scaling
+- scalable
 
 **Not so good**
 
 - interpretability
 - implementation
-- kinda complicated
-- point estimates easy, posteriors hard
+- tricky posteriors
+
+## 
+
+![](figs/quad/partial-phase-space.pdf)
+
+
+## What's the observation model for classifier output?
+
+```{r, echo=FALSE, out.width="80%", fig.align="center"}
+knitr::include_graphics("figs/animal-detection.png")
+```
+
+\tiny Norouzzadeh, Mohammad Sadegh, et al. "A deep active learning system for species identification and counting in camera trap images." Methods in ecology and evolution 12.1 (2021): 150-161.
+ 
+## Example observation model for classifier output\footnote[frame]{\tiny{Spiers, Anna I., et al. "Estimating species misclassification with occupancy dynamics and encounter rates: A semi‐supervised, individual‐level approach." Methods in Ecology and Evolution (2022).}}
+
+We encounter $L_k$ individuals for species $k=1, ..., K$
+
+**Observe** total encounters: $N = \sum_k L_k$
+
+$$N \sim \text{Poisson}\big( \sum_k \lambda_k z_k \big)$$
+
+**Observe** classifier predicted species for each encounter $i=1, ..., N$:
+
+$$y_i \sim \text{Categorical}(\pmb \theta_{k[i]})$$
+
+**Partially observe** (label) true species identities $k[i]$:
+
+$$k[i] \sim \text{Categorical}\bigg( \dfrac{z_k \lambda_k}{\sum_k z_k \lambda_k} \bigg)$$
 
 
 
-## Related work: tree-based function approximators\footnote[frame]{\tiny{Hutchinson, Rebecca, Li-Ping Liu, and Thomas Dietterich. "Incorporating boosted regression trees into ecological latent variable models." Proceedings of the AAAI Conference on Artificial Intelligence. Vol. 25. No. 1. 2011.}} 
 
+ 
+## What's the observation model for classifier output?
 
-\begin{center}
-  \scalebox{2}{%
-    $X \beta \rightarrow f_{\theta}(X),$%
-  }
-\end{center}
+**Considerations**
 
-where $f$ is a **boosted regression tree**.
-
-
-(speculation: better for tabular features?)\footnote[frame]{\tiny{Grinsztajn, Leo, Edouard Oyallon, and Gael Varoquaux. "Why do tree-based models still outperform deep learning on typical tabular data?." Thirty-sixth Conference on Neural Information Processing Systems Datasets and Benchmarks Track. 2022.}}
+- Out-of-distribution samples
+- Hard vs. soft labels
+- Correlated errors
+- Calibration
 
 
 
-## Science-based deep learning
 
-### Universal differential equations\footnote[frame]{\tiny{Rackauckas, Christopher, et al. "Universal Differential Equations for Scientific Machine Learning." arXiv preprint arXiv:2001.04385 (2020).}}
+## Practical questions: model output as data
 
-$$u' = \text{NN}_\theta(u, t)$$
-where $u$ is a state, and $\text{NN}_\theta$ is a neural net.
-
-
-## Science-based deep learning
-
-### Physics-guided neural networks\footnote[frame]{\tiny{Karpatne, Anuj, et al. "Physics-guided neural networks (pgnn): An application in lake temperature modeling." arXiv preprint arXiv:1710.11431 (2017).}}
-
-$$\text{Loss} = \text{Error} + \text{Model complexity} + \text{Physical inconsistency}$$
+- Optimal labeling
+- Two stage approach (classifier + model) vs. one integrated model
 
 
-## If you only remember one thing...
+## Imperfect data motivate hierarchical models
+
+- Occupancy (nondetection $\neq$ absence) 
+- N-mixture (count $\neq$ abundance)
+- Capture-recapture (not captured $\neq$ dead)
+- Animal movement (location $\neq$ behavioral state)
+- **Coupled classification (classifier output $\neq$ species ID)**
 
 
-\begin{center}
-  \scalebox{2}{%
-    $X \beta \rightarrow NN_{\theta}(X)$%
-  }
-\end{center}
 
-You can replace affine transforms ($X \beta$) with neural networks. 
-
-
-## Interactive examples: \newline github.com/mbjoseph/neuralecology
-
-[![Binder](figs/badge_logo.pdf)](https://mybinder.org/v2/gh/mbjoseph/neuralecology/master)
-
-- Site-occupancy model 
-- Dynamic occupancy model
-- N-mixture model
-- Capture-recapture model\
 
 ## Thank you
 
@@ -396,6 +391,8 @@ You can replace affine transforms ($X \beta$) with neural networks.
 \normalsize
 
 ### Code
+
+[![Binder](figs/badge_logo.pdf)](https://mybinder.org/v2/gh/mbjoseph/neuralecology/master)
 
 https://github.com/mbjoseph/neuralecology
 
