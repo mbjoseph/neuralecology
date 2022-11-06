@@ -359,7 +359,7 @@ $$k[i] \sim \text{Categorical}\bigg( \dfrac{z_k \lambda_k}{\sum_k z_k \lambda_k}
 
 ## Practical questions: model output as data
 
-- Optimal labeling
+- Optimal labeling\footnote[frame]{Stratton, Christian, et al. "Coupling validation effort with in situ bioacoustic data improves estimating relative activity and occupancy for multiple species with cross‐species misclassifications." Methods in Ecology and Evolution (2022).}
 - Two stage approach (classifier + model) vs. one integrated model
 
 
@@ -383,7 +383,7 @@ $$k[i] \sim \text{Categorical}\bigg( \dfrac{z_k \lambda_k}{\sum_k z_k \lambda_k}
 
 
 \small
-**Get in touch:** max.joseph@ncx.com, @mxwlj
+**Get in touch:** max.joseph@ncx.com, @maxj@ecoevo.social
 
 \normalsize
 
