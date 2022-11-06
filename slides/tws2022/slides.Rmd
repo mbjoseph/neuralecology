@@ -16,17 +16,9 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 
-## If you only remember one thing...
+## 
 
-
-\begin{center}
-  \scalebox{2}{%
-    $X \beta \rightarrow NN_{\theta}(X)$%
-  }
-\end{center}
-
-You can replace $X \beta$ with a neural network. 
-
+\huge Ecological models $\rightleftharpoons$ neural networks
 
 
 ## Hierarchical models predict states from data \footnote[frame]{\tiny{Berliner LM. Hierarchical Bayesian time series models. Maximum entropy and Bayesian methods 1996: 15-22}}
@@ -381,6 +373,11 @@ $$k[i] \sim \text{Categorical}\bigg( \dfrac{z_k \lambda_k}{\sum_k z_k \lambda_k}
 
 
 
+## 
+
+\huge Ecological models $\rightleftharpoons$ neural networks
+
+
 
 ## Thank you
 
@@ -400,3 +397,6 @@ https://github.com/mbjoseph/neuralecology
 
 Joseph MB. 2020. Neural hierarchical models of ecological populations. Ecology Letters, 23(4).
 
+### Special thanks
+
+Andy Royle, Angela Fuller, Kathi Irvine, Ben Augustine, Toryn Schafer, Richard Chandler
